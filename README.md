@@ -90,11 +90,16 @@ cityscapes的训练:gtFine中的文件需要是onehot之后的图片，总共19�
 |           |--zurich
 |               |--gtFine_labelTrainIds*.png 
 ```
-修改data_dir = os.path.join('/media/ding/Data/datasets', dataset)为自己的cityscapes目录即可，
-我是将cityscapes文件夹放在'/media/ding/Data/datasets'下, data_dir表示cityscapes数据的目录<br>
+修改builders/datasets_builder.py下的数据集加在路径<br>
+data_dir表示cityscapes数据的目录<br>
+data_dir = os.path.join('/media/ding/Data/datasets', dataset)为自己的cityscapes数据集目录即可，<br>
+我是将cityscapes数据文件夹放在'/media/ding/Data/datasets'下, 仅需修改自己本地存放数据集的目录，<br>
+os.path.join('/media/ding/Data/datasets', dataset)第二个参数dataset不需要修改，训练的时候传参即可；<br>
+传参的时候注意--dataset cityscapes,cityscapes需要是数据集的目录名一致《》br
+
 生成训练需要的文件路径的txt文本，cityscapes_train_list.txt；cityscapes_val_list.txt；cityscapes_test_list.txt放在data_dir下<br>
 ```
-txt的格式：*leftImg8bit.png\t*labelTrainIds.png<br>
+txt的格式：*leftImg8bit.png\t*labelTrainIds.png
 leftImg8bit/train/cologne/cologne_000000_000019_leftImg8bit.png gtFine/train/cologne/cologne_000000_000019_gtFine_labelTrainIds.png
 ```
 
@@ -106,12 +111,12 @@ train.sh脚本,修改相应参数；详细参数见train.py中的ArgumentParser(
 --model         训练的模型
 --dataset       训练的数据集名称（与文件目录相同）
 --max_epochs    训练Epoch
---val_epochs 10 每10个Epoch验证一次
+--val_epochs    每10个Epoch验证一次
 --lr            学习率
 --batch_size    batch_size
 ```
 ```
-python train.py --model BiSeNetV2 --dataset cityscapes --max_epochs 500  --val_epochs 10 --lr 0.01 --batch_size 8
+python train.py --max_epochs 100 --batch_size 16 --model ENet --dataset paris --optim adam --lr 0.001
 ```
 builders文件夹下dataset_builder.py文件的data_dir需要修改为数据集的文件夹目录
 
