@@ -179,8 +179,9 @@ def train_model(args):
             logger.write("\n%d\t\t%.4f\t\t%.4f\t\t%.7f" % (epoch, lossTr, mIOU_val, lr))
             logger.flush()
             print("Epoch  %d\tTrain Loss = %.4f\t mIOU(val) = %.4f\t lr= %.6f\n per_class_iu= %s" % (epoch,
-                                                                                    lossTr,
-                                                                                    mIOU_val, lr, str(per_class_iu)))
+                                                                                                     lossTr,
+                                                                                                     mIOU_val, lr,
+                                                                                                     str(per_class_iu)))
         else:
             # record train information
             logger.write("\n%d\t\t%.4f\t\t\t\t%.7f" % (epoch, lossTr, lr))
@@ -263,9 +264,14 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
 
         images = images.cuda()
         labels = labels.long().cuda()
-
-        output = model(images)
-        loss = criterion(output, labels)
+        if args.model == 'PSPNet50':
+            x, aux = model(images)
+            main_loss = criterion(x, labels)
+            aux_loss = criterion(aux, labels)
+            loss = 0.6 * main_loss + 0.4 * aux_loss
+        else:
+            output = model(images)
+            loss = criterion(output, labels)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -299,7 +305,6 @@ def val(args, val_loader, model):
                 desc='Val')
     for iteration, (input, label, size, name) in pbar:
         with torch.no_grad():
-            # input_var = Variable(input).cuda()
             input_var = input.cuda().float()
             output = model(input_var)
 
