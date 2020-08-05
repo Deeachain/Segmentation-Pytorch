@@ -90,12 +90,12 @@ cityscapes的训练:gtFine中的文件需要是onehot之后的图片，总共19�
 |           |--zurich
 |               |--gtFine_labelTrainIds*.png 
 ```
-修改builders/datasets_builder.py下的数据集加在路径<br>
+修改builders/datasets_builder.py下的数据集加载路径<br>
 data_dir表示cityscapes数据的目录<br>
-data_dir = os.path.join('/media/ding/Data/datasets', dataset)为自己的cityscapes数据集目录即可，<br>
-我是将cityscapes数据文件夹放在'/media/ding/Data/datasets'下, 仅需修改自己本地存放数据集的目录，<br>
-os.path.join('/media/ding/Data/datasets', dataset)第二个参数dataset不需要修改，训练的时候传参即可；<br>
-传参的时候注意--dataset cityscapes,cityscapes需要是数据集的目录名一致《》br
+data_dir = os.path.join('/media/ding/Data/datasets', dataset)为自己的cityscapes数据集目录即可<br>
+我是将cityscapes数据文件夹放在'/media/ding/Data/datasets'下, 仅需修改自己本地存放数据集的目录<br>
+os.path.join('/media/ding/Data/datasets', dataset)第二个参数dataset不需要修改，训练的时候传参即可<br>
+传参的时候注意--dataset cityscapes,cityscapes需要与数据集的目录名一致<br>
 
 生成训练需要的文件路径的txt文本，cityscapes_train_list.txt；cityscapes_val_list.txt；cityscapes_test_list.txt放在data_dir下<br>
 ```
