@@ -114,18 +114,17 @@ train.sh脚本,修改相应参数；详细参数见train.py中的ArgumentParser(
 python train.py --model BiSeNetV2 --dataset cityscapes --max_epochs 500  --val_epochs 10 --lr 0.01 --batch_size 8
 ```
 builders文件夹下dataset_builder.py文件的data_dir需要修改为数据集的文件夹目录
-```
+
 ## 测试训练保存的所有模型好坏
-test.py文件是用来测试所有训练生成模型权重的好坏,在所有保存的模型权重中测试得到一个指标最高的模型
+test.py文件是用来测试所有训练生成模型权重的好坏,在所有保存的模型权重中测试得到一个指标最高的模型<br>
+终端中执行: sh test.sh<br>
+修改test.sh的参数<br>
+best $True指选择最优模型<br>
 ```
-终端中执行: sh test.sh
-修改test.sh的参数
-best $True指选择最优模型
-python test.py --dataset paris \
-               --model UNet_res101 \
+python test.py --dataset cityscapes \
+               --model ENet \
                --best $True \
-               --save $False \
-               --checkpoint /media/ding/Study/graduate/Segmentation_Torch/checkpoint/paris/UNet_res101bs8gpu1_train/2020-04-16_13:43:19/model_1.pth
+               --checkpoint /media/ding/Study/graduate/code/Efficient-Segmentation-Networks/checkpoint/cityscapes/ENetbs8gpu1_train/model_300.pth
 ```
 ## 两种预测方法
 ### 1.预测小图,拼接成大图
@@ -135,6 +134,9 @@ python test.py --dataset paris \
 
 ```
 ### 2.直接输入大图,滑动窗口进行预测（本人使用的方法）
+终端中执行:sh predict_sliding.sh脚本--滑动窗口预测大图<br>
 ```
-终端中执行:sh predict_sliding.sh脚本--滑动窗口预测大图
+python predict_sliding.py --dataset cityscapes \
+                          --model ENet \
+                          --checkpoint /media/ding/Study/graduate/code/Efficient-Segmentation-Networks/checkpoint/paris/ENetbs16gpu1_train/model_91.pth
 ```
