@@ -12,9 +12,9 @@ from model.DeeplabV3Plus.backbone import build_backbone
 from model.DeeplabV3Plus.ASPP import ASPP
 
 
-class deeplabv3plus(nn.Module):
+class Deeplabv3plus(nn.Module):
     def __init__(self, cfg):
-        super(deeplabv3plus, self).__init__()
+        super(Deeplabv3plus, self).__init__()
         self.backbone = None
         self.backbone_layers = None
         input_channel = 2048

@@ -1,7 +1,6 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-# from .lib.psa import functional as PF
 from model.PSPNet import resnet as models
 
 

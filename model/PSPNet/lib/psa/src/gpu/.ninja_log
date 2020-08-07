@@ -1,5 +1,0 @@
-# ninja log v5
-0	6304	0	operator.o	ffe777b4ced2688d
-0	11239	0	psamask_cuda.cuda.o	da2735c0243b76f7
-11240	11422	0	psamask_gpu.so	114b4cc64544eec7
-1	6556	0	operator.o	bea2c062b3261869

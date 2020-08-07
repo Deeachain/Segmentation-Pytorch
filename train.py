@@ -21,6 +21,7 @@ from utils.losses.loss import LovaszSoftmax, CrossEntropyLoss2d, CrossEntropyLos
     ProbOhemCrossEntropy2d, FocalLoss2d
 from utils.optim import RAdam, Ranger, AdamW
 from utils.scheduler.lr_scheduler import WarmupPolyLR
+from utils.earlyStopping import EarlyStopping
 from tqdm import tqdm
 
 sys.setrecursionlimit(1000000)  # solve problem 'maximum recursion depth exceeded'
@@ -113,8 +114,12 @@ def train_model(args):
     if not os.path.exists(args.savedir):
         os.makedirs(args.savedir)
 
-    start_epoch = 0
+    with open(args.savedir + 'args.txt', 'w') as f:
+        f.write('mean:{}\nstd:{}\n'.format(datas['mean'], datas['std']))
+        f.write("Parameters: {} Seed: {}\n".format(str(total_paramters), GLOBAL_SEED))
+        f.write(str(args))
 
+    start_epoch = 0
     # continue training
     if args.resume:
         if os.path.isfile(args.resume):
@@ -129,14 +134,16 @@ def train_model(args):
     model.train()
     cudnn.benchmark = True
     # cudnn.deterministic = True ## my add
+    
+    # initialize the early_stopping object
+    early_stopping = EarlyStopping(patience=50)
 
     logFileLoc = args.savedir + args.logFile
     if os.path.isfile(logFileLoc):
         logger = open(logFileLoc, 'a')
     else:
         logger = open(logFileLoc, 'w')
-        logger.write("Parameters: %s Seed: %s" % (str(total_paramters), GLOBAL_SEED))
-        logger.write("\n%s\t\t%s\t%s\t%s" % ('Epoch', 'Loss(Tr)', 'mIOU (val)', 'lr'))
+        logger.write("%s\t%s\t\t%s\t%s\t%s" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'mIOU(Val)'))
     logger.flush()
 
     # define optimization strategy
@@ -171,22 +178,25 @@ def train_model(args):
         lossTr_list.append(lossTr)
 
         # validation
-        if epoch % args.val_epochs == 0 or epoch == (args.max_epochs - 1):
+        lossVal_list = []
+        if epoch % args.val_miou_epochs == 0:
             epoches.append(epoch)
-            mIOU_val, per_class_iu = val(args, valLoader, model)
+            val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
             mIOU_val_list.append(mIOU_val)
+            lossVal_list.append(val_loss)
             # record train information
-            logger.write("\n%d\t\t%.4f\t\t%.4f\t\t%.7f" % (epoch, lossTr, mIOU_val, lr))
+            logger.write(
+                "\n%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t%s" % (epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
             logger.flush()
-            print("Epoch  %d\tTrain Loss = %.4f\t mIOU(val) = %.4f\t lr= %.6f\n per_class_iu= %s" % (epoch,
-                                                                                                     lossTr,
-                                                                                                     mIOU_val, lr,
-                                                                                                     str(per_class_iu)))
+            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
+            epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
         else:
             # record train information
-            logger.write("\n%d\t\t%.4f\t\t\t\t%.7f" % (epoch, lossTr, lr))
+            val_loss = val(args, valLoader, criteria, model, epoch)
+            lossVal_list.append(val_loss)
+            logger.write("\n%d\t%.6f\t%.4f\t\t%.4f" % (epoch, lr, lossTr, val_loss))
             logger.flush()
-            print("Epoch  %d\tTrain Loss = %.4f\t lr= %.6f\n" % (epoch, lossTr, lr))
+            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\n" % (epoch, lr, lossTr, val_loss))
 
         # save the model
         model_file_name = args.savedir + '/model_' + str(epoch + 1) + '.pth'
@@ -199,30 +209,29 @@ def train_model(args):
             torch.save(state, model_file_name)
 
         # draw plots for visualization
-        if epoch % 20 == 0 or epoch == (args.max_epochs - 1):
-            # Plot the figures per 50 epochs
-            fig1, ax1 = plt.subplots(figsize=(11, 8))
+        fig1, ax1 = plt.subplots(figsize=(11, 8))
 
-            ax1.plot(range(start_epoch, epoch + 1), lossTr_list)
-            ax1.set_title("Average training loss vs epochs")
-            ax1.set_xlabel("Epochs")
-            ax1.set_ylabel("Current loss")
+        ax1.plot(range(start_epoch, epoch + 1), lossTr_list, label='Train_loss')
+        ax1.plot(range(start_epoch, epoch + 1), lossVal_list, label='Val_loss')
+        ax1.set_title("Average training loss vs epochs")
+        ax1.set_xlabel("Epochs")
+        ax1.set_ylabel("Current loss")
 
-            plt.savefig(args.savedir + "loss_vs_epochs.png")
+        plt.savefig(args.savedir + "loss.png")
 
-            plt.clf()
+        plt.clf()
 
-            fig2, ax2 = plt.subplots(figsize=(11, 8))
+        fig2, ax2 = plt.subplots(figsize=(11, 8))
 
-            ax2.plot(epoches, mIOU_val_list, label="Val IoU")
-            ax2.set_title("Average IoU vs epochs")
-            ax2.set_xlabel("Epochs")
-            ax2.set_ylabel("Current IoU")
-            plt.legend(loc='lower right')
+        ax2.plot(epoches, mIOU_val_list, label="Val IoU")
+        ax2.set_title("Average IoU vs epochs")
+        ax2.set_xlabel("Epochs")
+        ax2.set_ylabel("Current IoU")
+        plt.legend(loc='lower right')
 
-            plt.savefig(args.savedir + "iou_vs_epochs.png")
+        plt.savefig(args.savedir + "mIou.png")
 
-            plt.close('all')
+        plt.close('all')
 
     logger.close()
 
@@ -289,7 +298,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
     return average_epoch_loss_train, lr
 
 
-def val(args, val_loader, model):
+def val(args, val_loader, criteria, model, epoch):
     """
     args:
       val_loader: loaded for validation dataset
@@ -301,6 +310,7 @@ def val(args, val_loader, model):
     total_batches = len(val_loader)
 
     data_list = []
+    val_loss = []
     pbar = tqdm(iterable=enumerate(val_loader), total=total_batches,
                 desc='Val')
     for iteration, (input, label, size, name) in pbar:
@@ -308,14 +318,19 @@ def val(args, val_loader, model):
             input_var = input.cuda().float()
             output = model(input_var)
 
+        loss = criteria(output, label.long().cuda())
+        val_loss.append(loss)
         output = output.cpu().data[0].numpy()
         gt = np.asarray(label[0].numpy(), dtype=np.uint8)
         output = output.transpose(1, 2, 0)
         output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
         data_list.append([gt.flatten(), output.flatten()])
-
-    meanIoU, per_class_iu = get_iou(data_list, args.classes)
-    return meanIoU, per_class_iu
+    val_loss = sum(val_loss) / len(val_loss)
+    if epoch % args.val_miou_epochs == 0:
+        meanIoU, per_class_iu = get_iou(data_list, args.classes)
+        return val_loss, meanIoU, per_class_iu
+    else:
+        return val_loss
 
 
 def parse_args():
@@ -332,7 +347,7 @@ def parse_args():
     # training hyper params
     parser.add_argument('--max_epochs', type=int, default=300,
                         help="the number of epochs: 300 for train set, 350 for train+val set")
-    parser.add_argument('--val_epochs', type=int, default=100,
+    parser.add_argument('--val_miou_epochs', type=int, default=100,
                         help="the number of epochs: 100 for val set")
     parser.add_argument('--random_mirror', type=bool, default=True, help="input image random mirror")
     parser.add_argument('--random_scale', type=bool, default=True, help="input image resize 0.5 to 2")
