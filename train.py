@@ -28,6 +28,103 @@ sys.setrecursionlimit(1000000)  # solve problem 'maximum recursion depth exceede
 GLOBAL_SEED = 88
 
 
+def train(args, train_loader, model, criterion, optimizer, epoch):
+    """
+    args:
+       train_loader: loaded for training dataset
+       model: model
+       criterion: loss function
+       optimizer: optimization algorithm, such as ADAM or SGD
+       epoch: epoch number
+    return: average loss, per class IoU, and mean IoU
+    """
+
+    model.train()
+    epoch_loss = []
+
+    total_batches = len(train_loader)
+    st = time.time()
+    pbar = tqdm(iterable=enumerate(train_loader), total=total_batches,
+                desc='Epoch {}/{}'.format(epoch, args.max_epochs))
+    for iteration, batch in pbar:
+
+        args.per_iter = total_batches
+        args.max_iter = args.max_epochs * args.per_iter
+        args.cur_iter = epoch * args.per_iter + iteration
+        # learming scheduling
+        if args.lr_schedule == 'poly':
+            lambda1 = lambda epoch: math.pow((1 - (args.cur_iter / args.max_iter)), args.poly_exp)
+            scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
+        elif args.lr_schedule == 'warmpoly':
+            scheduler = WarmupPolyLR(optimizer, T_max=args.max_iter, cur_iter=args.cur_iter, warmup_factor=1.0 / 3,
+                                     warmup_iters=args.warmup_iters, power=0.9)
+
+        lr = optimizer.param_groups[0]['lr']
+
+        images, labels, _, _ = batch
+
+        images = images.cuda()
+        labels = labels.long().cuda()
+        if args.model == 'PSPNet50':
+            x, aux = model(images)
+            main_loss = criterion(x, labels)
+            aux_loss = criterion(aux, labels)
+            loss = 0.6 * main_loss + 0.4 * aux_loss
+        else:
+            output = model(images)
+            loss = criterion(output, labels)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        scheduler.step()  # In pytorch 1.1.0 and later, should call 'optimizer.step()' before 'lr_scheduler.step()'
+        epoch_loss.append(loss.item())
+
+    time_taken_epoch = time.time() - st
+    remain_time = time_taken_epoch * (args.max_epochs - 1 - epoch)
+    m, s = divmod(remain_time, 60)
+    h, m = divmod(m, 60)
+    print("Remaining training time = %d hour %d minutes %d seconds" % (h, m, s))
+
+    average_epoch_loss_train = sum(epoch_loss) / len(epoch_loss)
+
+    return average_epoch_loss_train, lr
+
+
+def val(args, val_loader, criteria, model, epoch):
+    """
+    args:
+      val_loader: loaded for validation dataset
+      model: model
+    return: mean IoU and IoU class
+    """
+    # evaluation mode
+    model.eval()
+    total_batches = len(val_loader)
+
+    data_list = []
+    val_loss = []
+    pbar = tqdm(iterable=enumerate(val_loader), total=total_batches,
+                desc='Val')
+    for iteration, (input, label, size, name) in pbar:
+        with torch.no_grad():
+            input_var = input.cuda().float()
+            output = model(input_var)
+
+        loss = criteria(output, label.long().cuda())
+        val_loss.append(loss)
+        output = output.cpu().data[0].numpy()
+        gt = np.asarray(label[0].numpy(), dtype=np.uint8)
+        output = output.transpose(1, 2, 0)
+        output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
+        data_list.append([gt.flatten(), output.flatten()])
+    val_loss = sum(val_loss) / len(val_loss)
+    if epoch % args.val_miou_epochs == 0:
+        meanIoU, per_class_iu = get_iou(data_list, args.classes)
+        return val_loss, meanIoU, per_class_iu
+    else:
+        return val_loss
+
+
 def train_model(args):
     """
     args:
@@ -134,7 +231,7 @@ def train_model(args):
     model.train()
     cudnn.benchmark = True
     # cudnn.deterministic = True ## my add
-    
+
     # initialize the early_stopping object
     early_stopping = EarlyStopping(patience=50)
 
@@ -218,7 +315,6 @@ def train_model(args):
         ax1.set_ylabel("Current loss")
 
         plt.savefig(args.savedir + "loss.png")
-
         plt.clf()
 
         fig2, ax2 = plt.subplots(figsize=(11, 8))
@@ -230,107 +326,16 @@ def train_model(args):
         plt.legend(loc='lower right')
 
         plt.savefig(args.savedir + "mIou.png")
-
         plt.close('all')
 
+        early_stopping.monitor(monitor=val_loss)
+        if early_stopping.early_stop:
+            print("Early stopping and Save checkpoint")
+            if not os.path.exists(model_file_name):
+                torch.save(state, model_file_name)
+            break
+
     logger.close()
-
-
-def train(args, train_loader, model, criterion, optimizer, epoch):
-    """
-    args:
-       train_loader: loaded for training dataset
-       model: model
-       criterion: loss function
-       optimizer: optimization algorithm, such as ADAM or SGD
-       epoch: epoch number
-    return: average loss, per class IoU, and mean IoU
-    """
-
-    model.train()
-    epoch_loss = []
-
-    total_batches = len(train_loader)
-    st = time.time()
-    pbar = tqdm(iterable=enumerate(train_loader), total=total_batches,
-                desc='Epoch {}/{}'.format(epoch, args.max_epochs))
-    for iteration, batch in pbar:
-
-        args.per_iter = total_batches
-        args.max_iter = args.max_epochs * args.per_iter
-        args.cur_iter = epoch * args.per_iter + iteration
-        # learming scheduling
-        if args.lr_schedule == 'poly':
-            lambda1 = lambda epoch: math.pow((1 - (args.cur_iter / args.max_iter)), args.poly_exp)
-            scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
-        elif args.lr_schedule == 'warmpoly':
-            scheduler = WarmupPolyLR(optimizer, T_max=args.max_iter, cur_iter=args.cur_iter, warmup_factor=1.0 / 3,
-                                     warmup_iters=args.warmup_iters, power=0.9)
-
-        lr = optimizer.param_groups[0]['lr']
-
-        images, labels, _, _ = batch
-
-        images = images.cuda()
-        labels = labels.long().cuda()
-        if args.model == 'PSPNet50':
-            x, aux = model(images)
-            main_loss = criterion(x, labels)
-            aux_loss = criterion(aux, labels)
-            loss = 0.6 * main_loss + 0.4 * aux_loss
-        else:
-            output = model(images)
-            loss = criterion(output, labels)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        scheduler.step()  # In pytorch 1.1.0 and later, should call 'optimizer.step()' before 'lr_scheduler.step()'
-        epoch_loss.append(loss.item())
-
-    time_taken_epoch = time.time() - st
-    remain_time = time_taken_epoch * (args.max_epochs - 1 - epoch)
-    m, s = divmod(remain_time, 60)
-    h, m = divmod(m, 60)
-    print("Remaining training time = %d hour %d minutes %d seconds" % (h, m, s))
-
-    average_epoch_loss_train = sum(epoch_loss) / len(epoch_loss)
-
-    return average_epoch_loss_train, lr
-
-
-def val(args, val_loader, criteria, model, epoch):
-    """
-    args:
-      val_loader: loaded for validation dataset
-      model: model
-    return: mean IoU and IoU class
-    """
-    # evaluation mode
-    model.eval()
-    total_batches = len(val_loader)
-
-    data_list = []
-    val_loss = []
-    pbar = tqdm(iterable=enumerate(val_loader), total=total_batches,
-                desc='Val')
-    for iteration, (input, label, size, name) in pbar:
-        with torch.no_grad():
-            input_var = input.cuda().float()
-            output = model(input_var)
-
-        loss = criteria(output, label.long().cuda())
-        val_loss.append(loss)
-        output = output.cpu().data[0].numpy()
-        gt = np.asarray(label[0].numpy(), dtype=np.uint8)
-        output = output.transpose(1, 2, 0)
-        output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
-        data_list.append([gt.flatten(), output.flatten()])
-    val_loss = sum(val_loss) / len(val_loss)
-    if epoch % args.val_miou_epochs == 0:
-        meanIoU, per_class_iu = get_iou(data_list, args.classes)
-        return val_loss, meanIoU, per_class_iu
-    else:
-        return val_loss
 
 
 def parse_args():
