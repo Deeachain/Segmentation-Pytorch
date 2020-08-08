@@ -72,6 +72,8 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
             loss = 0.6 * main_loss + 0.4 * aux_loss
         else:
             output = model(images)
+            if type(output) is tuple:
+                output = output[0]
             loss = criterion(output, labels)
         optimizer.zero_grad()
         loss.backward()
@@ -109,6 +111,8 @@ def val(args, val_loader, criteria, model, epoch):
         with torch.no_grad():
             input_var = input.cuda().float()
             output = model(input_var)
+            if type(output) is tuple:
+                output = output[0]
 
         loss = criteria(output, label.long().cuda())
         val_loss.append(loss)
@@ -267,7 +271,7 @@ def train_model(args):
     lossTr_list = []
     epoches = []
     mIOU_val_list = []
-
+    lossVal_list = []
     print('>>>>>>>>>>>beginning training>>>>>>>>>>>')
     for epoch in range(start_epoch, args.max_epochs):
         # training
@@ -275,58 +279,82 @@ def train_model(args):
         lossTr_list.append(lossTr)
 
         # validation
-        lossVal_list = []
         if epoch % args.val_miou_epochs == 0:
             epoches.append(epoch)
             val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
             mIOU_val_list.append(mIOU_val)
-            lossVal_list.append(val_loss)
+            lossVal_list.append(val_loss.item())
             # record train information
             logger.write(
-                "\n%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t%s" % (epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
+                "\n%d\t%.6f\t%.4f\t\t%.4f\t%0.4f\t %s" % (epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
             logger.flush()
             print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
             epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
         else:
             # record train information
             val_loss = val(args, valLoader, criteria, model, epoch)
-            lossVal_list.append(val_loss)
+            lossVal_list.append(val_loss.item())
             logger.write("\n%d\t%.6f\t%.4f\t\t%.4f" % (epoch, lr, lossTr, val_loss))
             logger.flush()
             print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\n" % (epoch, lr, lossTr, val_loss))
 
         # save the model
-        model_file_name = args.savedir + '/model_' + str(epoch + 1) + '.pth'
-        state = {"epoch": epoch + 1, "model": model.state_dict()}
+        model_file_name = args.savedir + '/model_' + str(epoch) + '.pth'
+        state = {"epoch": epoch, "model": model.state_dict()}
 
-        # Individual Setting for save model !!!
+        # Individual Setting for save model
         if epoch >= args.max_epochs - 10:
             torch.save(state, model_file_name)
         elif epoch % 10 == 0:
             torch.save(state, model_file_name)
 
         # draw plots for visualization
-        fig1, ax1 = plt.subplots(figsize=(11, 8))
+        if os.path.isfile(args.savedir + "loss.png"):
+            f = open(args.savedir + 'log.txt', 'r')
+            next(f)
+            epoch_list = []
+            lossTr_list = []
+            lossVal_list = []
+            for line in f.readlines():
+                epoch_list.append(line.strip().split()[0])
+                lossTr_list.append(line.strip().split()[2])
+                lossVal_list.append(line.strip().split()[3])
+            assert len(epoch_list) == len(lossTr_list) == len(lossVal_list)
 
-        ax1.plot(range(start_epoch, epoch + 1), lossTr_list, label='Train_loss')
-        ax1.plot(range(start_epoch, epoch + 1), lossVal_list, label='Val_loss')
-        ax1.set_title("Average training loss vs epochs")
-        ax1.set_xlabel("Epochs")
-        ax1.set_ylabel("Current loss")
+            fig1, ax1 = plt.subplots(figsize=(11, 8))
 
-        plt.savefig(args.savedir + "loss.png")
-        plt.clf()
+            ax1.plot(range(0, epoch + 1), lossTr_list, label='Train_loss')
+            ax1.plot(range(0, epoch + 1), lossVal_list, label='Val_loss')
+            ax1.set_title("Average training loss vs epochs")
+            ax1.set_xlabel("Epochs")
+            ax1.set_ylabel("Current loss")
+            ax1.legend()
 
-        fig2, ax2 = plt.subplots(figsize=(11, 8))
+            plt.savefig(args.savedir + "loss.png")
+            plt.clf()
+        else:
+            fig1, ax1 = plt.subplots(figsize=(11, 8))
 
-        ax2.plot(epoches, mIOU_val_list, label="Val IoU")
-        ax2.set_title("Average IoU vs epochs")
-        ax2.set_xlabel("Epochs")
-        ax2.set_ylabel("Current IoU")
-        plt.legend(loc='lower right')
+            ax1.plot(range(0, epoch + 1), lossTr_list, label='Train_loss')
+            ax1.plot(range(0, epoch + 1), lossVal_list, label='Val_loss')
+            ax1.set_title("Average training loss vs epochs")
+            ax1.set_xlabel("Epochs")
+            ax1.set_ylabel("Current loss")
+            ax1.legend()
 
-        plt.savefig(args.savedir + "mIou.png")
-        plt.close('all')
+            plt.savefig(args.savedir + "loss.png")
+            plt.clf()
+
+            fig2, ax2 = plt.subplots(figsize=(11, 8))
+
+            ax2.plot(epoches, mIOU_val_list, label="Val IoU")
+            ax2.set_title("Average IoU vs epochs")
+            ax2.set_xlabel("Epochs")
+            ax2.set_ylabel("Current IoU")
+            ax2.legend()
+
+            plt.savefig(args.savedir + "mIou.png")
+            plt.close('all')
 
         early_stopping.monitor(monitor=val_loss)
         if early_stopping.early_stop:

@@ -13,7 +13,6 @@ from model.DeeplabV3Plus.config import cfg
 
 
 
-
 def build_model(model_name, num_classes):
     # small model
     if model_name == 'ENet':
