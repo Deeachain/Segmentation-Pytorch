@@ -8,8 +8,9 @@ class iou
  0.9049523717813096, 0.6553959694622065, 0.4079456052528648, 0.8765924542132393, 0.19745433079577926, 
  0.510012327134576, 0.11816104748732476, 0.34569161104616813, 0.6274179445350734]
 ```
-![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png)
+原图和预测图对比
 ![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png)
+![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png)
 # 环境安装
 pip install -r requirements.txt
 实验环境 Ubuntu 16.04 GTX1080TI 单卡 python==3.6.5<br>
@@ -21,9 +22,16 @@ pip install -r requirements.txt
 后期会更新我的数据集-----
 # 模型搭建
 所有的模型搭建都是在builders/model_builder.py文件下导入<br>
-```
-UNet、ENet、ESPNet、ESPNet_v2、ERFNet、DABNet、BiSeNetV2、PSPNet、DeeplabV3Plus
-```
+- [x] UNet
+- [x] ENet
+- [x] ESPNet
+- [x] ESPNet_v2
+- [x] ERFNet
+- [x] DABNet
+- [x] BiSeNetV2
+- [x] PSPNet
+- [x] DeeplabV3Plus
+- [ ] FCN
 # 训练
 cityscapes的训练:gtFine中的文件需要是onehot之后的图片，总共19个类别（图片中的像素是0-18&255）。<br>
 文件结构<br>
