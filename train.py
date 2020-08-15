@@ -194,6 +194,9 @@ def train_model(args):
     elif args.dataset == 'paris':
         criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
 
+    elif args.dataset == 'road':
+        criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
+
     else:
         raise NotImplementedError(
             "This repository now supports two datasets: cityscapes and camvid, %s is not included" % args.dataset)
@@ -427,6 +430,10 @@ if __name__ == '__main__':
         ignore_label = 11
     elif args.dataset == 'paris':
         args.classes = 3
+        args.input_size = '512,512'
+        ignore_label = 255
+    elif args.dataset == 'road':
+        args.classes = 2
         args.input_size = '512,512'
         ignore_label = 255
     else:

@@ -1,6 +1,6 @@
 ## 由于时间有限,代码注释没有完善好,我会长期更新,不断完善readme形成一个完整的代码引导,后期数据集也会共享,方便下载调试,谢谢大家的关注~
 # 效果展示
-PSPNet训练200Epoch，Miou=0.5535604759342954,使用的是作者开源的源代码，网络不会有问题，训练技巧和硬件配置不够
+PSPNet使用的是作者开源的源代码，训练Cityscapes数据集，Miou=0.5535604759342954，时间有限仅训练200Epoch，此次实验初始学习率设置大收敛慢，后面会实验得到一个最优结果及参数设置。
 ```
 class iou 
 [0.9486701457704959, 0.7049106876005735, 0.8300539507571478, 0.3252279876366611, 0.32811147036266664, 
@@ -12,7 +12,7 @@ class iou
 ![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png)
 ![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png)
 # 环境安装
-```pip install -r requirements.txt```
+```pip install -r requirements.txt```<br>
 实验环境 Ubuntu 16.04 GTX1080TI 单卡 python==3.6.5<br>
 具体参数见requirement.txt<br>
 # 数据预处理

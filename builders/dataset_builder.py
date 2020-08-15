@@ -4,6 +4,7 @@ from torch.utils import data
 from dataset.cityscapes.cityscapes import CityscapesDataSet, CityscapesTrainInform, CityscapesValDataSet, CityscapesTestDataSet
 from dataset.camvid.camvid import CamVidDataSet, CamVidValDataSet, CamVidTrainInform
 from dataset.paris.paris import ParisDataSet, ParisValDataSet, ParisTestDataSet, ParisTrainInform
+from dataset.road.road import RoadDataSet, RoadTrainInform, RoadValDataSet, RoadTestDataSet
 
 
 def build_dataset_train(dataset, input_size, batch_size, train_type, random_scale, random_mirror, num_workers):
@@ -23,6 +24,9 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
                                             inform_data_file=inform_data_file)
         elif dataset == 'paris':
             dataCollect = ParisTrainInform(data_dir, 3, train_set_file=train_data_list,
+                                            inform_data_file=inform_data_file)
+        elif dataset == 'road':
+            dataCollect = ParisTrainInform(data_dir, 2, train_set_file=train_data_list,
                                             inform_data_file=inform_data_file)
         else:
             raise NotImplementedError(
@@ -79,6 +83,20 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
 
         return datas, trainLoader, valLoader
 
+    elif dataset == "road":
+
+        trainLoader = data.DataLoader(
+            RoadDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
+                          mirror=random_mirror, mean=datas['mean']),
+            batch_size=batch_size, shuffle=True, num_workers=num_workers,
+            pin_memory=True, drop_last=True)
+
+        valLoader = data.DataLoader(
+            RoadValDataSet(data_dir, val_data_list, f_scale=1, mean=datas['mean']),
+            batch_size=1, shuffle=True, num_workers=num_workers, pin_memory=True)
+
+        return datas, trainLoader, valLoader
+
 
 def build_dataset_test(dataset, num_workers, none_gt=False):
     data_dir = os.path.join('/media/ding/Data/datasets', dataset)
@@ -97,6 +115,9 @@ def build_dataset_test(dataset, num_workers, none_gt=False):
                                             inform_data_file=inform_data_file)
         elif dataset == 'paris':
             dataCollect = ParisTrainInform(data_dir, 3, train_set_file=dataset_list,
+                                            inform_data_file=inform_data_file)
+        elif dataset == 'road':
+            dataCollect = RoadTrainInform(data_dir, 2, train_set_file=dataset_list,
                                             inform_data_file=inform_data_file)
         else:
             raise NotImplementedError(
@@ -141,6 +162,14 @@ def build_dataset_test(dataset, num_workers, none_gt=False):
 
         return datas, testLoader
 
+    elif dataset == "road":
+
+        testLoader = data.DataLoader(
+            RoadValDataSet(data_dir, test_data_list, mean=datas['mean']),
+            batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=True)
+
+        return datas, testLoader
+
 def build_dataset_sliding_test(dataset, num_workers, none_gt=False):
     data_dir = os.path.join('/media/ding/Data/datasets', dataset)
     dataset_list = os.path.join(dataset, '_train_list.txt')
@@ -165,9 +194,9 @@ def build_dataset_sliding_test(dataset, num_workers, none_gt=False):
         # elif dataset == 'austin':
         #     dataCollect = AustinTrainInform(data_dir, 2, train_set_file=dataset_list,
         #                                     inform_data_file=inform_data_file)
-        # elif dataset == 'road':
-        #     dataCollect = RoadTrainInform(data_dir, 2, train_set_file=dataset_list,
-        #                                   inform_data_file=inform_data_file)
+        elif dataset == 'road':
+            dataCollect = RoadTrainInform(data_dir, 2, train_set_file=dataset_list,
+                                          inform_data_file=inform_data_file)
         else:
             raise NotImplementedError(
                 "This repository now supports two datasets: cityscapes and camvid, %s is not included" % dataset)
@@ -211,13 +240,13 @@ def build_dataset_sliding_test(dataset, num_workers, none_gt=False):
 
         return datas, testLoader
 
-    elif dataset == "austin":
-
-        testLoader = data.DataLoader(
-            AustinTestDataSet(data_dir, test_data_list, mean=datas['mean']),
-            batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=True)
-
-        return datas, testLoader
+    # elif dataset == "austin":
+    #
+    #     testLoader = data.DataLoader(
+    #         AustinTestDataSet(data_dir, test_data_list, mean=datas['mean']),
+    #         batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=True)
+    #
+    #     return datas, testLoader
 
     elif dataset == "road":
 
