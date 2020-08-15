@@ -12,7 +12,7 @@ class iou
 ![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png)
 ![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png)
 # 环境安装
-pip install -r requirements.txt
+```pip install -r requirements.txt```
 实验环境 Ubuntu 16.04 GTX1080TI 单卡 python==3.6.5<br>
 具体参数见requirement.txt<br>
 # 数据预处理
