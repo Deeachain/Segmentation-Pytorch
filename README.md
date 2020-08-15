@@ -81,18 +81,21 @@ python test.py --dataset cityscapes \
                --checkpoint /media/ding/Study/graduate/code/Efficient-Segmentation-Networks/checkpoint/cityscapes/ENetbs8gpu1_train/model_300.pth
 ```
 ## 两种预测方法
-### 1.预测小图,拼接成大图
+#### 1.预测小图,拼接成大图
 ```
 终端中执行:sh predict.sh脚本--预测小图,修改--checkpoint等参数
 接着outputs/concat_image.py拼接成大图
 
 ```
-### 2.直接输入大图,滑动窗口进行预测（本人使用的方法）
+#### 2.直接输入大图,滑动窗口进行预测（本人使用的方法）
 终端中执行:sh predict_sliding.sh脚本--滑动窗口预测大图<br>
 ```
 python predict_sliding.py --dataset cityscapes \
                           --model ENet \
                           --checkpoint /media/ding/Study/graduate/code/Efficient-Segmentation-Networks/checkpoint/paris/ENetbs16gpu1_train/model_91.pth
 ```
-![]()
-![]()
+## 效果展示
+PSPNet训练200Epoch，Miou
+![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png)
+![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png)
+
