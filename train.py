@@ -244,7 +244,7 @@ def train_model(args):
         logger = open(logFileLoc, 'a')
     else:
         logger = open(logFileLoc, 'w')
-        logger.write("%s\t%s\t\t%s\t%s\t%s" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'mIOU(Val)'))
+        logger.write("%s\t%s\t\t%s\t%s\t%s\n" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'mIOU(Val)'))
     logger.flush()
 
     # define optimization strategy
@@ -286,15 +286,15 @@ def train_model(args):
             lossVal_list.append(val_loss.item())
             # record train information
             logger.write(
-                "\n%d\t%.6f\t%.4f\t\t%.4f\t%0.4f\t %s" % (epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
+                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t%s\n" % (epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
             logger.flush()
             print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
-            epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
+                epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
         else:
             # record train information
             val_loss = val(args, valLoader, criteria, model, epoch)
             lossVal_list.append(val_loss.item())
-            logger.write("\n%d\t%.6f\t%.4f\t\t%.4f" % (epoch, lr, lossTr, val_loss))
+            logger.write("%d\t%.6f\t%.4f\t\t%.4f\n" % (epoch, lr, lossTr, val_loss))
             logger.flush()
             print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\n" % (epoch, lr, lossTr, val_loss))
 
@@ -316,9 +316,9 @@ def train_model(args):
             lossTr_list = []
             lossVal_list = []
             for line in f.readlines():
-                epoch_list.append(line.strip().split()[0])
-                lossTr_list.append(line.strip().split()[2])
-                lossVal_list.append(line.strip().split()[3])
+                epoch_list.append(float(line.strip().split()[0]))
+                lossTr_list.append(float(line.strip().split()[2]))
+                lossVal_list.append(float(line.strip().split()[3]))
             assert len(epoch_list) == len(lossTr_list) == len(lossVal_list)
 
             fig1, ax1 = plt.subplots(figsize=(11, 8))
