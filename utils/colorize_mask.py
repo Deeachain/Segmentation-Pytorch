@@ -13,6 +13,10 @@ camvid_palette = [128, 128, 128, 128, 0, 0, 192, 192, 128, 128, 64, 128, 60, 40,
 
 paris_palette = [255, 255, 255, 0, 0, 255, 255, 0, 0]
 
+road_palette = [0, 0, 0, 255, 255, 255]
+
+austin_palette = [0, 0, 0, 255, 255, 255]
+
 zero_pad = 256 * 3 - len(cityscapes_palette)
 for i in range(zero_pad):
     cityscapes_palette.append(0)
@@ -41,6 +45,20 @@ def paris_colorize_mask(mask):
     # mask: numpy array of the mask
     new_mask = Image.fromarray(mask.astype(np.uint8)).convert('P')
     new_mask.putpalette(paris_palette)
+
+    return new_mask
+
+def road_colorize_mask(mask):
+    # mask: numpy array of the mask
+    new_mask = Image.fromarray(mask.astype(np.uint8)).convert('P')
+    new_mask.putpalette(road_palette)
+
+    return new_mask
+
+def austin_colorize_mask(mask):
+    # mask: numpy array of the mask
+    new_mask = Image.fromarray(mask.astype(np.uint8)).convert('P')
+    new_mask.putpalette(austin_palette)
 
     return new_mask
 
