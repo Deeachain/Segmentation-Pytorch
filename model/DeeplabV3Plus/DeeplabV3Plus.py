@@ -13,7 +13,7 @@ from model.DeeplabV3Plus.ASPP import ASPP
 
 
 class Deeplabv3plus(nn.Module):
-    def __init__(self, cfg):
+    def __init__(self, cfg, num_classes):
         super(Deeplabv3plus, self).__init__()
         self.backbone = None
         self.backbone_layers = None
@@ -44,7 +44,7 @@ class Deeplabv3plus(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(0.1),
         )
-        self.cls_conv = nn.Conv2d(cfg.MODEL_ASPP_OUTDIM, cfg.MODEL_NUM_CLASSES, 1, 1, padding=0)
+        self.cls_conv = nn.Conv2d(cfg.MODEL_ASPP_OUTDIM, num_classes, 1, 1, padding=0)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')

@@ -37,4 +37,4 @@ def build_model(model_name, num_classes):
     #     return PSANet(layers=50, dropout=0.1, classes=num_classes, zoom_factor=8, use_psa=True, psa_type=2, compact=compact,
     #                shrink_factor=shrink_factor, mask_h=mask_h, mask_w=mask_w, psa_softmax=True, pretrained=True)
     elif model_name == 'Deeplabv3plus':
-        return Deeplabv3plus(cfg)
+        return Deeplabv3plus(cfg, num_classes=num_classes)
