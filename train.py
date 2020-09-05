@@ -17,6 +17,7 @@ from builders.model_builder import build_model
 from builders.dataset_builder import build_dataset_train
 from utils.utils import setup_seed, init_weight, netParams
 from utils.metric.metric import get_iou
+from utils.metric.SegmentationMetric import SegmentationMetric
 from utils.losses.loss import LovaszSoftmax, CrossEntropyLoss2d, CrossEntropyLoss2dLabelSmooth, \
     ProbOhemCrossEntropy2d, FocalLoss2d
 from utils.optim import RAdam, Ranger, AdamW
@@ -105,6 +106,8 @@ def val(args, val_loader, criteria, model, epoch):
 
     data_list = []
     val_loss = []
+    Miou = []
+    PerMiou = []
     pbar = tqdm(iterable=enumerate(val_loader), total=total_batches,
                 desc='Val')
     for iteration, (input, label, size, name) in pbar:
@@ -120,11 +123,27 @@ def val(args, val_loader, criteria, model, epoch):
         gt = np.asarray(label[0].numpy(), dtype=np.uint8)
         output = output.transpose(1, 2, 0)
         output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
-        data_list.append([gt.flatten(), output.flatten()])
+        # data_list.append([gt.flatten(), output.flatten()])
+        metric = SegmentationMetric(args.classes)  # args.classes表示有args.classes个分类
+        metric.addBatch(output, gt)
+        pa = metric.pixelAccuracy()
+        cpa = metric.classPixelAccuracy()
+        mpa = metric.meanPixelAccuracy()
+        mIoU, per_class_iu = metric.meanIntersectionOverUnion()
+        FmIoU = metric.Frequency_Weighted_Intersection_over_Union()
+        Miou.append(mIoU)
+        PerMiou.append(per_class_iu)
     val_loss = sum(val_loss) / len(val_loss)
     if epoch % args.val_miou_epochs == 0:
-        meanIoU, per_class_iu = get_iou(data_list, args.classes)
-        return val_loss, meanIoU, per_class_iu
+        Miou = sum(Miou) / len(Miou)
+        PerMiou = np.array(PerMiou)
+        PerMiou = np.mean(PerMiou, axis=0)
+        PerMiou_set = {}
+        PerMiou = np.around(PerMiou, decimals=4)
+        for index, per in enumerate(PerMiou):
+            PerMiou_set[index] = per
+        # meanIoU, per_class_iu = get_iou(data_list, args.classes)
+        return val_loss, Miou, PerMiou_set
     else:
         return val_loss
 
@@ -196,7 +215,11 @@ def train_model(args):
 
     elif args.dataset == 'road':
         criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
-
+    elif args.dataset == 'ai':
+        criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
+    elif args.dataset == 'ai' and args.use_ohem:
+        min_kept = int(args.batch_size // len(args.gpus) * h * w // 16)
+        criteria = ProbOhemCrossEntropy2d(use_weight=True, weight=weight, ignore_label=ignore_label, thresh=0.7, min_kept=min_kept)
     else:
         raise NotImplementedError(
             "This repository now supports two datasets: cityscapes and camvid, %s is not included" % args.dataset)
@@ -228,7 +251,7 @@ def train_model(args):
     if args.resume:
         if os.path.isfile(args.resume):
             checkpoint = torch.load(args.resume)
-            start_epoch = checkpoint['epoch']
+            start_epoch = checkpoint['epoch'] + 1
             model.load_state_dict(checkpoint['model'])
             # model.load_state_dict(convert_state_dict(checkpoint['model']))
             print("loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
@@ -236,8 +259,8 @@ def train_model(args):
             print("no checkpoint found at '{}'".format(args.resume))
 
     model.train()
-    cudnn.benchmark = True
-    # cudnn.deterministic = True ## my add
+    cudnn.benchmark = True # 寻找最优配置
+    cudnn.deterministic = True # 减少波动
 
     # initialize the early_stopping object
     early_stopping = EarlyStopping(patience=50)
@@ -282,14 +305,14 @@ def train_model(args):
         lossTr_list.append(lossTr)
 
         # validation
-        if epoch % args.val_miou_epochs == 0:
+        if epoch % args.val_miou_epochs == 0 or epoch == args.max_epochs-1:
             epoches.append(epoch)
             val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
             mIOU_val_list.append(mIOU_val)
             lossVal_list.append(val_loss.item())
             # record train information
             logger.write(
-                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t%s\n" % (epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
+                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t%s\n" % (epoch, lr, lossTr, val_loss, mIOU_val, per_class_iu))
             logger.flush()
             print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
                 epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
@@ -334,6 +357,7 @@ def train_model(args):
             ax1.legend()
 
             plt.savefig(args.savedir + "loss.png")
+            plt.close('all')
             plt.clf()
         else:
             fig1, ax1 = plt.subplots(figsize=(11, 8))
@@ -359,11 +383,14 @@ def train_model(args):
             plt.savefig(args.savedir + "mIou.png")
             plt.close('all')
 
-        early_stopping.monitor(monitor=val_loss)
+        early_stopping.monitor(monitor=mIOU_val)
         if early_stopping.early_stop:
             print("Early stopping and Save checkpoint")
             if not os.path.exists(model_file_name):
                 torch.save(state, model_file_name)
+                val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
+                print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
+                        epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
             break
 
     logger.close()
@@ -383,7 +410,7 @@ def parse_args():
     # training hyper params
     parser.add_argument('--max_epochs', type=int, default=300,
                         help="the number of epochs: 300 for train set, 350 for train+val set")
-    parser.add_argument('--val_miou_epochs', type=int, default=100,
+    parser.add_argument('--val_miou_epochs', type=int, default=1,
                         help="the number of epochs: 100 for val set")
     parser.add_argument('--random_mirror', type=bool, default=True, help="input image random mirror")
     parser.add_argument('--random_scale', type=bool, default=True, help="input image resize 0.5 to 2")
@@ -396,13 +423,13 @@ def parse_args():
     parser.add_argument('--poly_exp', type=float, default=0.9, help='polynomial LR exponent')
     parser.add_argument('--warmup_iters', type=int, default=500, help='warmup iterations')
     parser.add_argument('--warmup_factor', type=float, default=1.0 / 3, help='warm up start lr=warmup_factor*lr')
-    parser.add_argument('--use_label_smoothing', action='store_true', default=False,
+    parser.add_argument('--use_label_smoothing', default=False,
                         help="CrossEntropy2d Loss with label smoothing or not")
-    parser.add_argument('--use_ohem', action='store_true', default=True,
+    parser.add_argument('--use_ohem', default=False,
                         help='OhemCrossEntropy2d Loss for cityscapes dataset')
-    parser.add_argument('--use_lovaszsoftmax', action='store_true', default=False,
+    parser.add_argument('--use_lovaszsoftmax', default=False,
                         help='LovaszSoftmax Loss for cityscapes dataset')
-    parser.add_argument('--use_focal', action='store_true', default=False, help=' FocalLoss2d for cityscapes dataset')
+    parser.add_argument('--use_focal', default=False, help=' FocalLoss2d for cityscapes dataset')
     # cuda setting
     parser.add_argument('--cuda', type=bool, default=True, help="running on CPU or GPU")
     parser.add_argument('--gpus', type=str, default="0", help="default GPU devices (0,1)")
@@ -435,6 +462,10 @@ if __name__ == '__main__':
     elif args.dataset == 'road':
         args.classes = 2
         args.input_size = '512,512'
+        ignore_label = 255
+    elif args.dataset == 'ai':
+        args.classes = 8
+        args.input_size = '256,256'
         ignore_label = 255
     else:
         raise NotImplementedError(
