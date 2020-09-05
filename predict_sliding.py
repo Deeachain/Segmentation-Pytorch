@@ -107,11 +107,15 @@ def predict_sliding(args, net, image, tile_size, classes):
     Miou = sum(Miou)/len(Miou)
     PerMiou = np.array(PerMiou)
     PerMiou = np.mean(PerMiou, axis=0)
-    print('miou {}\nclass iou {}'.format(Miou, PerMiou))
+    PerMiou_set = {}
+    PerMiou = np.around(PerMiou, decimals=4)
+    for index, per in enumerate(PerMiou):
+        PerMiou_set[index] = per
+    print('miou {}\nclass iou {}'.format(Miou, PerMiou_set))
     result = args.save_seg_dir + '/results.txt'
     with open(result, 'w') as f:
         f.write(str(Miou))
-        f.write('\n{}'.format(str(PerMiou)))
+        f.write('\n{}'.format(PerMiou_set))
 
 
 def test_model(args):
