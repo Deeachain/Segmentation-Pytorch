@@ -292,7 +292,7 @@ def train_model(args):
         # validation
         if epoch % args.val_epochs == 0 or epoch == args.max_epochs-1:
             epoches.append(epoch)
-            val_loss, FWIoU, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
+            val_loss, FWIoU, mIOU_val, per_class_iu = val(args, valLoader, criteria, model)
             mIOU_val_list.append(mIOU_val)
             lossVal_list.append(val_loss.item())
             # record train information
