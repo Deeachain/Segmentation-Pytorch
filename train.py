@@ -16,7 +16,6 @@ from argparse import ArgumentParser
 from builders.model_builder import build_model
 from builders.dataset_builder import build_dataset_train
 from utils.utils import setup_seed, init_weight, netParams
-from utils.metric.metric import get_iou
 from utils.metric.SegmentationMetric import SegmentationMetric
 from utils.losses.loss import LovaszSoftmax, CrossEntropyLoss2d, CrossEntropyLoss2dLabelSmooth, \
     ProbOhemCrossEntropy2d, FocalLoss2d
@@ -93,7 +92,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
     return average_epoch_loss_train, lr
 
 
-def val(args, val_loader, criteria, model, epoch):
+def val(args, val_loader, criteria, model):
     """
     args:
       val_loader: loaded for validation dataset
@@ -104,12 +103,9 @@ def val(args, val_loader, criteria, model, epoch):
     model.eval()
     total_batches = len(val_loader)
 
-    data_list = []
     val_loss = []
-    Miou = []
-    PerMiou = []
-    pbar = tqdm(iterable=enumerate(val_loader), total=total_batches,
-                desc='Val')
+    metric = SegmentationMetric(args.classes)
+    pbar = tqdm(iterable=enumerate(val_loader), total=total_batches, desc='Val')
     for iteration, (input, label, size, name) in pbar:
         with torch.no_grad():
             input_var = input.cuda().float()
@@ -123,29 +119,18 @@ def val(args, val_loader, criteria, model, epoch):
         gt = np.asarray(label[0].numpy(), dtype=np.uint8)
         output = output.transpose(1, 2, 0)
         output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
-        # data_list.append([gt.flatten(), output.flatten()])
-        metric = SegmentationMetric(args.classes)  # args.classes表示有args.classes个分类
-        metric.addBatch(output, gt)
-        pa = metric.pixelAccuracy()
-        cpa = metric.classPixelAccuracy()
-        mpa = metric.meanPixelAccuracy()
-        mIoU, per_class_iu = metric.meanIntersectionOverUnion()
-        FmIoU = metric.Frequency_Weighted_Intersection_over_Union()
-        Miou.append(mIoU)
-        PerMiou.append(per_class_iu)
+        # 计算miou
+        metric.addBatch(imgPredict=output.flatten(), imgLabel=gt.flatten())
+
     val_loss = sum(val_loss) / len(val_loss)
-    if epoch % args.val_miou_epochs == 0:
-        Miou = sum(Miou) / len(Miou)
-        PerMiou = np.array(PerMiou)
-        PerMiou = np.mean(PerMiou, axis=0)
-        PerMiou_set = {}
-        PerMiou = np.around(PerMiou, decimals=4)
-        for index, per in enumerate(PerMiou):
-            PerMiou_set[index] = per
-        # meanIoU, per_class_iu = get_iou(data_list, args.classes)
-        return val_loss, Miou, PerMiou_set
-    else:
-        return val_loss
+
+    pa = metric.pixelAccuracy()
+    cpa = metric.classPixelAccuracy()
+    mpa = metric.meanPixelAccuracy()
+    Miou, PerMiou_set = metric.meanIntersectionOverUnion()
+    FWIoU = metric.Frequency_Weighted_Intersection_over_Union()
+
+    return val_loss, FWIoU, Miou, PerMiou_set
 
 
 def train_model(args):
@@ -270,7 +255,7 @@ def train_model(args):
         logger = open(logFileLoc, 'a')
     else:
         logger = open(logFileLoc, 'w')
-        logger.write("%s\t%s\t\t%s\t%s\t%s\n" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'mIOU(Val)'))
+        logger.write("%s\t%s\t\t%s\t%s\t%s\t%s\n" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'FWIOU(Val)', 'mIOU(Val)'))
     logger.flush()
 
     # define optimization strategy
@@ -305,24 +290,22 @@ def train_model(args):
         lossTr_list.append(lossTr)
 
         # validation
-        if epoch % args.val_miou_epochs == 0 or epoch == args.max_epochs-1:
+        if epoch % args.val_epochs == 0 or epoch == args.max_epochs-1:
             epoches.append(epoch)
-            val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
+            val_loss, FWIoU, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
             mIOU_val_list.append(mIOU_val)
             lossVal_list.append(val_loss.item())
             # record train information
             logger.write(
-                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t%s\n" % (epoch, lr, lossTr, val_loss, mIOU_val, per_class_iu))
+                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t\t%0.4f\t\t%s\n" % (epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, per_class_iu))
             logger.flush()
-            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
-                epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
+            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tFWIOU(val) = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
+                epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, str(per_class_iu)))
         else:
             # record train information
-            val_loss = val(args, valLoader, criteria, model, epoch)
-            lossVal_list.append(val_loss.item())
-            logger.write("%d\t%.6f\t%.4f\t\t%.4f\n" % (epoch, lr, lossTr, val_loss))
+            logger.write("%d\t%.6f\t%.4f\n" % (epoch, lr, lossTr))
             logger.flush()
-            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\n" % (epoch, lr, lossTr, val_loss))
+            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\n" % (epoch, lr, lossTr))
 
         # save the model
         model_file_name = args.savedir + '/model_' + str(epoch) + '.pth'
@@ -364,7 +347,7 @@ def train_model(args):
 
             ax1.plot(range(0, epoch + 1), lossTr_list, label='Train_loss')
             ax1.plot(range(0, epoch + 1), lossVal_list, label='Val_loss')
-            ax1.set_title("Average training loss vs epochs")
+            ax1.set_title("Average loss vs epochs")
             ax1.set_xlabel("Epochs")
             ax1.set_ylabel("Current loss")
             ax1.legend()
@@ -410,10 +393,10 @@ def parse_args():
     # training hyper params
     parser.add_argument('--max_epochs', type=int, default=300,
                         help="the number of epochs: 300 for train set, 350 for train+val set")
-    parser.add_argument('--val_miou_epochs', type=int, default=1,
+    parser.add_argument('--val_epochs', type=int, default=1,
                         help="the number of epochs: 100 for val set")
-    parser.add_argument('--random_mirror', type=bool, default=True, help="input image random mirror")
-    parser.add_argument('--random_scale', type=bool, default=True, help="input image resize 0.5 to 2")
+    parser.add_argument('--random_mirror', type=bool, default=False, help="input image random mirror")
+    parser.add_argument('--random_scale', type=bool, default=False, help="input image resize 0.5 to 2")
     parser.add_argument('--lr', type=float, default=5e-4, help="initial learning rate")
     parser.add_argument('--batch_size', type=int, default=8, help="the batch size is set to 16 for 2 GPUs")
     parser.add_argument('--optim', type=str.lower, default='adam', choices=['sgd', 'adam', 'radam', 'ranger'],

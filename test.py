@@ -1,9 +1,6 @@
 import os
-import time
 import torch
 import numpy as np
-# import minpy.numpy as np
-# import cupy as np
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from argparse import ArgumentParser
@@ -11,7 +8,6 @@ from argparse import ArgumentParser
 from builders.model_builder import build_model
 from builders.dataset_builder import build_dataset_test
 from utils.utils import save_predict
-from utils.metric import get_iou
 import glob
 from tqdm import tqdm
 from utils.convert_state import convert_state_dict
@@ -29,52 +25,36 @@ def test(args, test_loader, model):
     model.eval()
     total_batches = len(test_loader)
 
-    Miou_list = []
-    Iou_list = []
-    Pa_list = []
-    Mpa_list = []
-    Fmiou_list = []
+    metric = SegmentationMetric(numClass=args.classes)
     pbar = tqdm(iterable=enumerate(test_loader), total=total_batches, desc='Valing')
     for i, (input, gt, size, name) in pbar:
         with torch.no_grad():
             input_var = Variable(input).cuda()
-        start_time = time.time()
+
         output = model(input_var)
         torch.cuda.synchronize()
-        time_taken = time.time() - start_time
-        pbar.set_postfix(cost_time='%.3f' % time_taken)
+
         output = output.cpu().data[0].numpy()
         output = output.transpose(1, 2, 0)
         output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
         gt = np.asarray(gt[0], dtype=np.uint8)
 
         # 计算miou
-        metric = SegmentationMetric(numClass=args.classes)
-        metric.addBatch(imgPredict=output, imgLabel=gt)
-        miou, iou = metric.meanIntersectionOverUnion()
-        fmiou = metric.Frequency_Weighted_Intersection_over_Union()
-        pa = metric.pixelAccuracy()
-        mpa = metric.meanPixelAccuracy()
-        Miou_list.append(miou)
-        Fmiou_list.append(fmiou)
-        Pa_list.append(pa)
-        Mpa_list.append(mpa)
-        iou = np.array(iou)
-        Iou_list.append(iou)
+        metric.addBatch(imgPredict=output.flatten(), imgLabel=gt.flatten())
 
         # save the predicted image
         if args.save:
             save_predict(output, gt, name[0], args.dataset, args.save_seg_dir,
                          output_grey=False, output_color=True, gt_color=True)
 
-    miou = np.mean(Miou_list)
-    fmiou = np.mean(Fmiou_list)
-    pa = np.mean(Pa_list)
-    mpa = np.mean(Mpa_list)
-    Iou_list = np.asarray(Iou_list)
-    iou = np.mean(Iou_list, axis=0)
-    cls_iu = dict(zip(range(args.classes), iou))
-    return miou, cls_iu, fmiou, pa, mpa
+    pa = metric.pixelAccuracy()
+    cpa = metric.classPixelAccuracy()
+    mpa = metric.meanPixelAccuracy()
+    Miou, PerMiou_set = metric.meanIntersectionOverUnion()
+    FWIoU = metric.Frequency_Weighted_Intersection_over_Union()
+
+    return Miou, PerMiou_set, FWIoU, pa, mpa
+
 
 def test_model(args):
     """
@@ -105,13 +85,13 @@ def test_model(args):
     datas, testLoader = build_dataset_test(args.dataset, args.num_workers)
 
     if args.best:
-    # Get the best test result among the all model records.
+        # Get the best test result among the all model records.
         if args.checkpoint:
             if os.path.isfile(args.checkpoint):
                 dirname, basename = os.path.split(args.checkpoint)
                 mIOU_val = []
                 check_num = []
-                checkpoint_name = glob.glob(dirname+'/*.pth')
+                checkpoint_name = glob.glob(dirname + '/*.pth')
                 for i in checkpoint_name:
                     name = i.split('/')[-1].split('_')[-1].split('.')[0]
                     check_num.append(int(name))
@@ -124,10 +104,9 @@ def test_model(args):
                     model.load_state_dict(checkpoint['model'])
                     print("beginning test the:" + basename)
                     print("validation set length: ", len(testLoader))
-                    miou, class_iou, fmiou, pa, mpa  = test(args, testLoader, model)
-                    print('Miou Val is ',miou)
+                    miou, class_iou, fmiou, pa, mpa = test(args, testLoader, model)
+                    print('Miou Val is ', miou)
                     mIOU_val.append(miou)
-
 
                 # index = list(range(epoch - 19, epoch + 1))[np.argmax(mIOU_val)]
                 index = check_num[np.argmax(mIOU_val)]

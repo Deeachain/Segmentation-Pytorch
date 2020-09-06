@@ -8,7 +8,6 @@ from utils.utils import save_predict
 from argparse import ArgumentParser
 import torch.backends.cudnn as cudnn
 from tqdm import tqdm
-from utils.metric.metric import get_iou
 from utils.metric.SegmentationMetric import SegmentationMetric
 
 
@@ -36,8 +35,7 @@ def pad_label(img, target_size):
 # image:需要预测的图片(1,3,3072,3328);tile_size:小方块大小;
 def predict_sliding(args, net, image, tile_size, classes):
     total_batches = len(image)
-    Miou = []
-    PerMiou = []
+    metric = SegmentationMetric(args.classes)  # args.classes表示有args.classes个分类
     pbar = tqdm(iterable=enumerate(image), total=total_batches, desc='Predicting')
     for i, (input, gt, size, name) in pbar:
         image_size = input.shape  # (1,3,3328,3072)
@@ -90,27 +88,16 @@ def predict_sliding(args, net, image, tile_size, classes):
         '''设置输出原图和预测图片的颜色灰度还是彩色'''
         gt = gt[0].numpy()
         # 计算miou
-        # data_list.append([gt.flatten(), full_probs.flatten()])
-        metric = SegmentationMetric(args.classes) # 3表示有3个分类，有几个分类就填几
         metric.addBatch(full_probs, gt)
-        pa = metric.pixelAccuracy()
-        cpa = metric.classPixelAccuracy()
-        mpa = metric.meanPixelAccuracy()
-        mIoU, per_class_iu = metric.meanIntersectionOverUnion()
-        FmIoU = metric.Frequency_Weighted_Intersection_over_Union()
-        Miou.append(mIoU)
-        PerMiou.append(per_class_iu)
         save_predict(full_probs, gt, name[0], args.dataset, args.save_seg_dir,
                      output_grey=False, output_color=True, gt_color=True)
 
-    # meanIoU, per_class_iu = get_iou(data_list, args.classes)
-    Miou = sum(Miou)/len(Miou)
-    PerMiou = np.array(PerMiou)
-    PerMiou = np.mean(PerMiou, axis=0)
-    PerMiou_set = {}
-    PerMiou = np.around(PerMiou, decimals=4)
-    for index, per in enumerate(PerMiou):
-        PerMiou_set[index] = per
+    pa = metric.pixelAccuracy()
+    cpa = metric.classPixelAccuracy()
+    mpa = metric.meanPixelAccuracy()
+    Miou, PerMiou_set = metric.meanIntersectionOverUnion()
+    FWIoU = metric.Frequency_Weighted_Intersection_over_Union()
+
     print('miou {}\nclass iou {}'.format(Miou, PerMiou_set))
     result = args.save_seg_dir + '/results.txt'
     with open(result, 'w') as f:

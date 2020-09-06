@@ -1,5 +1,4 @@
 import os
-import time
 import torch
 import numpy as np
 import torch.backends.cudnn as cudnn
@@ -8,7 +7,7 @@ from argparse import ArgumentParser
 from builders.model_builder import build_model
 from builders.dataset_builder import build_dataset_test
 from utils.utils import save_predict
-from utils.metric.metric import get_iou
+from utils.metric.SegmentationMetric import SegmentationMetric
 from tqdm import tqdm
 from utils.convert_state import convert_state_dict
 
@@ -23,30 +22,38 @@ def predict(args, test_loader, model):
     # evaluation or test mode
     model.eval()
     total_batches = len(test_loader)
-    data_list = []
-    pbar = tqdm(iterable=enumerate(test_loader), total=total_batches, desc='Predicting')
-    for i, (input, label, size, name) in pbar:
+
+    metric = SegmentationMetric(numClass=args.classes)
+    pbar = tqdm(iterable=enumerate(test_loader), total=total_batches, desc='Valing')
+    for i, (input, gt, size, name) in pbar:
         with torch.no_grad():
-            input_var = input.cuda().float()
+            input_var = input.cuda()
+
         output = model(input_var)
         torch.cuda.synchronize()
 
         output = output.cpu().data[0].numpy()
         output = output.transpose(1, 2, 0)
         output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
-        gt = np.asarray(label[0].numpy(), dtype=np.uint8)
+        gt = np.asarray(gt[0], dtype=np.uint8)
 
-        # Save the predict greyscale output for Cityscapes official evaluation
-        # Modify image name to meet official requirement
-        save_predict(output, None, name[0], args.dataset, args.save_seg_dir,
-                     output_grey=False, output_color=True, gt_color=False)
-        data_list.append([gt.flatten(), output.flatten()])
-    meanIoU, per_class_iu = get_iou(data_list, args.classes)
-    print('miou {}\nclass iou {}'.format(meanIoU, per_class_iu))
+        # 计算miou
+        metric.addBatch(imgPredict=output.flatten(), imgLabel=gt.flatten())
+
+        # save the predicted image
+        save_predict(output, gt, name[0], args.dataset, args.save_seg_dir,
+                         output_grey=False, output_color=True, gt_color=True)
+
+    pa = metric.pixelAccuracy()
+    cpa = metric.classPixelAccuracy()
+    mpa = metric.meanPixelAccuracy()
+    Miou, PerMiou_set = metric.meanIntersectionOverUnion()
+    FWIoU = metric.Frequency_Weighted_Intersection_over_Union()
+    print('miou {}\nclass iou {}'.format(Miou, PerMiou_set))
     result = args.save_seg_dir + '/results.txt'
     with open(result, 'w') as f:
-        f.write(str(meanIoU))
-        f.write('\n{}'.format(str(per_class_iu)))
+        f.write(str(Miou))
+        f.write('\n{}'.format(PerMiou_set))
 
 
 def test_model(args):

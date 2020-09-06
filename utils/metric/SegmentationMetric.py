@@ -34,22 +34,18 @@ class SegmentationMetric(object):
         return meanAcc # 返回单个值，如：np.nanmean([0.90, 0.80, 0.96, nan, nan]) = (0.90 + 0.80 + 0.96） / 3 =  0.89
 
     def meanIntersectionOverUnion(self):
-        # Intersection = TP Union = TP + FP + FN
+        # Intersection = TP ;Union = TP + FP + FN
         # IoU = TP / (TP + FP + FN)
         intersection = np.diag(self.confusionMatrix) # 取对角元素的值，返回列表
         union = np.sum(self.confusionMatrix, axis=1) + np.sum(self.confusionMatrix, axis=0) - np.diag(self.confusionMatrix) # axis = 1表示混淆矩阵行的值，返回列表； axis = 0表示取混淆矩阵列的值，返回列表
-        union[union == 0.] = 100
-        IoU = intersection / union  # 返回列表，其值为各个类别的IoU
-        mIoU = np.nanmean(IoU)  # 求各类别IoU的平均
-        return mIoU, IoU
 
-    def genConfusionMatrix(self, imgPredict, imgLabel): # 同FCN中score.py的fast_hist()函数
-        # remove classes from unlabeled pixels in gt image and predict
-        mask = (imgLabel >= 0) & (imgLabel < self.numClass)
-        label = self.numClass * imgLabel[mask] + imgPredict[mask]
-        count = np.bincount(label, minlength=self.numClass**2)
-        confusionMatrix = count.reshape(self.numClass, self.numClass)
-        return confusionMatrix
+        IoU = (intersection / np.maximum(1.0, union))   # 返回列表，其值为各个类别的IoU
+        PerMiou_set = {}
+        PerMiou = np.around(IoU, decimals=4)
+        for index, per in enumerate(PerMiou):
+            PerMiou_set[index] = per
+        mIoU = np.nanmean(IoU)  # 求各类别IoU的平均
+        return mIoU, PerMiou_set
 
     def Frequency_Weighted_Intersection_over_Union(self):
         # FWIOU =     [(TP+FN)/(TP+FP+TN+FN)] *[TP / (TP + FP + FN)]
@@ -60,6 +56,13 @@ class SegmentationMetric(object):
         FWIoU = (freq[freq > 0] * iu[freq > 0]).sum()
         return FWIoU
 
+    def genConfusionMatrix(self, imgPredict, imgLabel): # 同FCN中score.py的fast_hist()函数
+        # remove classes from unlabeled pixels in gt image and predict
+        mask = (imgLabel >= 0) & (imgLabel < self.numClass)
+        label = self.numClass * imgLabel[mask] + imgPredict[mask]
+        count = np.bincount(label, minlength=self.numClass**2)
+        confusionMatrix = count.reshape(self.numClass, self.numClass)
+        return confusionMatrix
 
     def addBatch(self, imgPredict, imgLabel):
         assert imgPredict.shape == imgLabel.shape
@@ -71,15 +74,14 @@ class SegmentationMetric(object):
 
 if __name__ == '__main__':
     imgPredict = np.array([0, 0, 1, 1, 2, 2]) # 可直接换成预测图片
-    imgLabel = np.array([0, 0, 1, 1, 2, 2]) # 可直接换成标注图片
+    imgLabel = np.array([0, 0, 1, 1, 1, 2]) # 可直接换成标注图片
     metric = SegmentationMetric(3) # 3表示有3个分类，有几个分类就填几
     metric.addBatch(imgPredict, imgLabel)
     pa = metric.pixelAccuracy()
     cpa = metric.classPixelAccuracy()
     mpa = metric.meanPixelAccuracy()
-    mIoU = metric.meanIntersectionOverUnion()
+    mIoU, per = metric.meanIntersectionOverUnion()
     print('pa is : %f' % pa)
     print('cpa is :') # 列表
-    print(cpa)
     print('mpa is : %f' % mpa)
-    print('mIoU is : %f' % mIoU)
+    print('mIoU is : %f' % mIoU, per)
