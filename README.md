@@ -16,6 +16,11 @@ class iou
     <img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png" width="250"/>
 </figure>
 
+<figure class="half">
+    <img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit.png" width="250"/>
+    <img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png" width="250"/>
+</figure>
+
 
 # 环境安装
 ```pip install -r requirements.txt```<br>
