@@ -9,8 +9,14 @@ class iou
  0.510012327134576, 0.11816104748732476, 0.34569161104616813, 0.6274179445350734]
 ```
 原图和预测图对比
-![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png)
-![](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png)
+
+<figure class="half">
+    <img src="图片链接" width="200"/>
+    <img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png" width="300"/>
+    <img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png" width="300"/>
+</figure>
+
+
 # 环境安装
 ```pip install -r requirements.txt```<br>
 实验环境 Ubuntu 16.04 GTX1080TI 单卡 python==3.6.5<br>
