@@ -10,8 +10,9 @@ class iou
 ```
 原图和预测图对比
 
-<figure class="third"><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png" width="200"/><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png" width="200"/>
-</figure>
+<center class="half">
+    <img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png" width="500"/><img src="图片链接" width="200"/><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png" width="500"/>
+</center>
 
 # 环境安装
 ```pip install -r requirements.txt```<br>
