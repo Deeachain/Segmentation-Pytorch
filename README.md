@@ -81,9 +81,7 @@ cityscapes的训练：gtFine中的文件需要是onehot之后的图片，总共1
 `--dataset cityscapes`中的`cityscapes`需要与数据集的目录名一致
 
 - 生成训练需要的文件路径的txt文本，`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`
-放在修改过的`data_dir`下<br>
-txt的格式如下（原图路径+分隔符(\t)+标签路径）：<br>
-`*leftImg8bit.png\t*labelTrainIds.png`
+放在修改过的`data_dir`下。txt的格式如下（原图路径+分隔符(\t)+标签路径）<br>
 ```
 leftImg8bit/train/cologne/cologne_000000_000019_leftImg8bit.png gtFine/train/cologne/cologne_000000_000019_gtFine_labelTrainIds.png
 ```
