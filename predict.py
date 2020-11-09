@@ -30,6 +30,8 @@ def predict(args, test_loader, model):
             input_var = input.cuda()
 
         output = model(input_var)
+        if type(output) is tuple:
+            output = output[0]
         torch.cuda.synchronize()
 
         output = output.cpu().data[0].numpy()
