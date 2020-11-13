@@ -20,7 +20,7 @@ from model.FPENet import FPENet
 
 
 
-from tools.flops_counter.ptflops import get_model_complexity_info
+from utils.flops_counter.ptflops import get_model_complexity_info
 
 
 
