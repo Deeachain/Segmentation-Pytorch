@@ -43,11 +43,9 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
     epoch_loss = []
 
     total_batches = len(train_loader)
-    st = time.time()
     pbar = tqdm(iterable=enumerate(train_loader), total=total_batches,
                 desc='Epoch {}/{}'.format(epoch, args.max_epochs))
     for iteration, batch in pbar:
-
         args.per_iter = total_batches
         args.max_iter = args.max_epochs * args.per_iter
         args.cur_iter = epoch * args.per_iter + iteration
@@ -62,7 +60,6 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
         lr = optimizer.param_groups[0]['lr']
 
         images, labels, _, _ = batch
-
         images = images.cuda()
         labels = labels.long().cuda()
         if args.model == 'PSPNet50':
@@ -81,14 +78,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
         scheduler.step()  # In pytorch 1.1.0 and later, should call 'optimizer.step()' before 'lr_scheduler.step()'
         epoch_loss.append(loss.item())
 
-    time_taken_epoch = time.time() - st
-    remain_time = time_taken_epoch * (args.max_epochs - 1 - epoch)
-    m, s = divmod(remain_time, 60)
-    h, m = divmod(m, 60)
-    print("Remaining training time = %d hour %d minutes %d seconds" % (h, m, s))
-
     average_epoch_loss_train = sum(epoch_loss) / len(epoch_loss)
-
     return average_epoch_loss_train, lr
 
 
@@ -138,10 +128,6 @@ def train_model(args):
     args:
        args: global arguments
     """
-    h, w = map(int, args.input_size.split(','))
-    input_size = (h, w)
-    print("input size:{}".format(input_size))
-
     print(args)
 
     if args.cuda:
@@ -158,16 +144,14 @@ def train_model(args):
 
     # build the model and initialization
     model = build_model(args.model, num_classes=args.classes)
-    init_weight(model, nn.init.kaiming_normal_,
-                nn.BatchNorm2d, 1e-3, 0.1,
-                mode='fan_in')
+    init_weight(model, nn.init.kaiming_normal_, nn.BatchNorm2d, 1e-3, 0.1, mode='fan_in')
 
     print("computing network parameters and FLOPs")
     total_paramters = netParams(model)
     print("the number of parameters: %d ==> %.2f M" % (total_paramters, (total_paramters / 1e6)))
 
     # load data and data augmentation
-    datas, trainLoader, valLoader = build_dataset_train(args.dataset, input_size, args.batch_size, args.train_type,
+    datas, trainLoader, valLoader = build_dataset_train(args.dataset, args.input_size, args.batch_size, args.train_type,
                                                         args.random_scale, args.random_mirror, args.num_workers)
 
     args.per_iter = len(trainLoader)
@@ -178,36 +162,21 @@ def train_model(args):
     print('mean and std: ', datas['mean'], datas['std'])
 
     # define loss function, respectively
-    weight = torch.from_numpy(datas['classWeights'])
-
-    if args.dataset == 'camvid':
-        criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
-    elif args.dataset == 'camvid' and args.use_label_smoothing:
-        criteria = CrossEntropyLoss2dLabelSmooth(weight=weight, ignore_label=ignore_label)
-
-    elif args.dataset == 'cityscapes' and args.use_ohem:
-        min_kept = int(args.batch_size // len(args.gpus) * h * w // 16)
-        criteria = ProbOhemCrossEntropy2d(use_weight=True, ignore_label=ignore_label, thresh=0.7, min_kept=min_kept)
-    elif args.dataset == 'cityscapes' and args.use_label_smoothing:
-        criteria = CrossEntropyLoss2dLabelSmooth(weight=weight, ignore_label=ignore_label)
-    elif args.dataset == 'cityscapes' and args.use_lovaszsoftmax:
-        criteria = LovaszSoftmax(ignore_index=ignore_label)
-    elif args.dataset == 'cityscapes' and args.use_focal:
-        criteria = FocalLoss2d(weight=weight, ignore_index=ignore_label)
-
-    elif args.dataset == 'paris':
-        criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
-
-    elif args.dataset == 'road':
-        criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
-    elif args.dataset == 'ai':
-        criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
-    elif args.dataset == 'ai' and args.use_ohem:
-        min_kept = int(args.batch_size // len(args.gpus) * h * w // 16)
-        criteria = ProbOhemCrossEntropy2d(use_weight=True, weight=weight, ignore_label=ignore_label, thresh=0.7, min_kept=min_kept)
+    if args.dataset == 'cityscapes':
+        weight = torch.FloatTensor([0.8373, 0.918, 0.866, 1.0345, 1.0166, 0.9969, 0.9754, 1.0489,
+                 0.8786, 1.0023, 0.9539, 0.9843, 1.1116, 0.9037, 1.0865, 1.0955,
+                 1.0865, 1.1529, 1.0507])
     else:
-        raise NotImplementedError(
-            "This repository now supports two datasets: cityscapes and camvid, %s is not included" % args.dataset)
+        weight = torch.from_numpy(datas['classWeights'])
+    if args.use_ohem:
+        min_kept = int(args.batch_size // len(args.gpus) * h * w // 16)
+        criteria = ProbOhemCrossEntropy2d(weight=weight, ignore_label=ignore_label, thresh=0.7, min_kept=min_kept)
+    elif args.use_label_smoothing:
+        criteria = CrossEntropyLoss2dLabelSmooth(weight=weight, ignore_label=ignore_label)
+    elif args.use_lovaszsoftmax:
+        criteria = LovaszSoftmax(ignore_index=ignore_label)
+    elif args.use_focal:
+        criteria = FocalLoss2d(weight=weight, ignore_index=ignore_label)
 
     if args.cuda:
         criteria = criteria.cuda()
@@ -244,8 +213,8 @@ def train_model(args):
             print("no checkpoint found at '{}'".format(args.resume))
 
     model.train()
-    cudnn.benchmark = True # 寻找最优配置
-    cudnn.deterministic = True # 减少波动
+    cudnn.benchmark = True  # 寻找最优配置
+    cudnn.deterministic = True  # 减少波动
 
     # initialize the early_stopping object
     early_stopping = EarlyStopping(patience=50)
@@ -255,7 +224,8 @@ def train_model(args):
         logger = open(logFileLoc, 'a')
     else:
         logger = open(logFileLoc, 'w')
-        logger.write("%s\t%s\t\t%s\t%s\t%s\t%s\n" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'FWIOU(Val)', 'mIOU(Val)'))
+        logger.write(
+            "%s\t%s\t\t%s\t%s\t%s\t%s\n" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'FWIOU(Val)', 'mIOU(Val)'))
     logger.flush()
 
     # define optimization strategy
@@ -290,17 +260,19 @@ def train_model(args):
         lossTr_list.append(lossTr)
 
         # validation
-        if epoch % args.val_epochs == 0 or epoch == args.max_epochs-1:
+        if epoch % args.val_epochs == 0 or epoch == args.max_epochs - 1:
             epoches.append(epoch)
             val_loss, FWIoU, mIOU_val, per_class_iu = val(args, valLoader, criteria, model)
             mIOU_val_list.append(mIOU_val)
             lossVal_list.append(val_loss.item())
             # record train information
             logger.write(
-                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t\t%0.4f\t\t%s\n" % (epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, per_class_iu))
+                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t\t%0.4f\t\t%s\n" % (
+                    epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, per_class_iu))
             logger.flush()
-            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tFWIOU(val) = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
-                epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, str(per_class_iu)))
+            print(
+                "Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tFWIOU(val) = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
+                    epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, str(per_class_iu)))
         else:
             # record train information
             logger.write("%d\t%.6f\t%.4f\n" % (epoch, lr, lossTr))
@@ -316,7 +288,6 @@ def train_model(args):
             torch.save(state, model_file_name)
         elif epoch % 10 == 0:
             torch.save(state, model_file_name)
-
 
         f = open(args.savedir + 'log.txt', 'r')
         next(f)
@@ -377,8 +348,9 @@ def train_model(args):
             print("Early stopping and Save checkpoint")
             if not os.path.exists(model_file_name):
                 torch.save(state, model_file_name)
-                val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model, epoch)
-                print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
+                val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model)
+                print(
+                    "Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
                         epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
             break
 
@@ -399,7 +371,7 @@ def parse_args():
     # training hyper params
     parser.add_argument('--max_epochs', type=int, default=300,
                         help="the number of epochs: 300 for train set, 350 for train+val set")
-    parser.add_argument('--val_epochs', type=int, default=50,
+    parser.add_argument('--val_epochs', type=int, default=1,
                         help="the number of epochs: 100 for val set")
     parser.add_argument('--random_mirror', type=bool, default=True, help="input image random mirror")
     parser.add_argument('--random_scale', type=bool, default=True, help="input image resize 0.5 to 2")
@@ -411,7 +383,7 @@ def parse_args():
     parser.add_argument('--num_cycles', type=int, default=1, help='Cosine Annealing Cyclic LR')
     parser.add_argument('--poly_exp', type=float, default=0.9, help='polynomial LR exponent')
     parser.add_argument('--warmup_iters', type=int, default=500, help='warmup iterations')
-    parser.add_argument('--warmup_factor', type=float, default=1.0 / 3, help='warm up start lr=warmup_factor*lr')
+    parser.add_argument('--warmup_factor', type=float, default=0.3, help='warm up start lr=warmup_factor*lr')
     parser.add_argument('--use_label_smoothing', default=False,
                         help="CrossEntropy2d Loss with label smoothing or not")
     parser.add_argument('--use_ohem', default=False,
@@ -438,27 +410,27 @@ if __name__ == '__main__':
 
     if args.dataset == 'cityscapes':
         args.classes = 19
-        args.input_size = '512,1024'
+        args.input_size = (512, 512)
         ignore_label = 255
     elif args.dataset == 'camvid':
         args.classes = 11
-        args.input_size = '360,480'
+        args.input_size = (360, 480)
         ignore_label = 11
     elif args.dataset == 'paris':
         args.classes = 3
-        args.input_size = '512,512'
+        args.input_size = (256, 256)
         ignore_label = 255
     elif args.dataset == 'road':
         args.classes = 2
-        args.input_size = '512,512'
+        args.input_size = (512, 512)
         ignore_label = 255
     elif args.dataset == 'ai':
         args.classes = 8
-        args.input_size = '256,256'
+        args.input_size = (256, 256)
         ignore_label = 255
     else:
         raise NotImplementedError(
-            "This repository now supports two datasets: cityscapes and camvid, %s is not included" % args.dataset)
+            "This repository now supports datasets %s is not included" % args.dataset)
 
     train_model(args)
     end = timeit.default_timer()

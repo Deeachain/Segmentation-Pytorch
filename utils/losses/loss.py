@@ -6,7 +6,6 @@ from utils.losses.lovasz_losses import lovasz_softmax
 from torch.nn.modules.loss import _Loss, _WeightedLoss
 from torch.nn import NLLLoss2d
 
-
 __all__ = ["CrossEntropyLoss2d", "CrossEntropyLoss2dLabelSmooth",
            "FocalLoss2d", "LDAMLoss", "ProbOhemCrossEntropy2d",
            "LovaszSoftmax"]
@@ -32,27 +31,6 @@ class CrossEntropyLoss2d(_WeightedLoss):
         return self.nll_loss(output, target)
 
 
-# class CrossEntropyLoss2d(nn.Module):
-#     '''
-#     This file defines a cross entropy loss for 2D images
-#     '''
-#
-#     def __init__(self, weight=None, ignore_label=255):
-#         '''
-#         :param weight: 1D weight vector to deal with the class-imbalance
-#         Obtaining log-probabilities in a neural network is easily achieved by adding a LogSoftmax layer in the last layer of your network.
-#         You may use CrossEntropyLoss instead, if you prefer not to add an extra layer.
-#         '''
-#         super().__init__()
-#
-#         # self.loss = nn.NLLLoss2d(weight, ignore_index=255)
-#         self.loss = nn.NLLLoss(weight, ignore_index=ignore_label)
-#
-#     def forward(self, outputs, targets):
-#         return self.loss(F.log_softmax(outputs, dim=1), targets)
-
-
-
 class CrossEntropyLoss2dLabelSmooth(_WeightedLoss):
     """
     Refer from https://arxiv.org/pdf/1512.00567.pdf
@@ -76,8 +54,6 @@ class CrossEntropyLoss2dLabelSmooth(_WeightedLoss):
         :return: scalar
         """
         n_classes = output.size(1)
-        # batchsize, num_class = input.size()
-        # log_probs = F.log_softmax(inputs, dim=1)
         targets = torch.zeros_like(output).scatter_(1, target.unsqueeze(1), 1)
         targets = (1 - self.epsilon) * targets + self.epsilon / n_classes
 
@@ -88,6 +64,8 @@ class CrossEntropyLoss2dLabelSmooth(_WeightedLoss):
 https://arxiv.org/abs/1708.02002
 # Credit to https://github.com/clcarwin/focal_loss_pytorch
 """
+
+
 class FocalLoss2d(nn.Module):
     def __init__(self, alpha=0.5, gamma=2, weight=None, ignore_index=255, size_average=True):
         super().__init__()
@@ -100,22 +78,22 @@ class FocalLoss2d(nn.Module):
 
     def forward(self, output, target):
 
-        if output.dim()>2:
+        if output.dim() > 2:
             output = output.contiguous().view(output.size(0), output.size(1), -1)
-            output = output.transpose(1,2)
+            output = output.transpose(1, 2)
             output = output.contiguous().view(-1, output.size(2)).squeeze()
-        if target.dim()==4:
+        if target.dim() == 4:
             target = target.contiguous().view(target.size(0), target.size(1), -1)
-            target = target.transpose(1,2)
+            target = target.transpose(1, 2)
             target = target.contiguous().view(-1, target.size(2)).squeeze()
-        elif target.dim()==3:
+        elif target.dim() == 3:
             target = target.view(-1)
         else:
             target = target.view(-1, 1)
 
         logpt = self.ce_fn(output, target)
         pt = torch.exp(-logpt)
-        loss = ((1-pt) ** self.gamma) * self.alpha * logpt
+        loss = ((1 - pt) ** self.gamma) * self.alpha * logpt
         if self.size_average:
             return loss.mean()
         else:
@@ -125,6 +103,8 @@ class FocalLoss2d(nn.Module):
 """
 https://arxiv.org/pdf/1906.07413.pdf
 """
+
+
 class LDAMLoss(nn.Module):
 
     def __init__(self, cls_num_list, max_m=0.5, weight=None, s=30):
@@ -150,30 +130,22 @@ class LDAMLoss(nn.Module):
         return F.cross_entropy(self.s * output, target, weight=self.weight)
 
 
-
-
 # Adapted from OCNet Repository (https://github.com/PkuRainBow/OCNet)
 class ProbOhemCrossEntropy2d(nn.Module):
     def __init__(self, ignore_label=255, reduction='mean', thresh=0.6, min_kept=256,
-                 down_ratio=1, use_weight=False):
+                 down_ratio=1, weight=None):
         super(ProbOhemCrossEntropy2d, self).__init__()
         self.ignore_label = ignore_label
         self.thresh = float(thresh)
         self.min_kept = int(min_kept)
         self.down_ratio = down_ratio
-        if use_weight:
-            print("w/ class balance")
-            weight = torch.FloatTensor(
-                [0.8373, 0.918, 0.866, 1.0345, 1.0166, 0.9969, 0.9754, 1.0489,
-                 0.8786, 1.0023, 0.9539, 0.9843, 1.1116, 0.9037, 1.0865, 1.0955,
-                 1.0865, 1.1529, 1.0507])
+        if weight is not None:
             self.criterion = nn.CrossEntropyLoss(reduction=reduction,
-                                                       weight=weight,
-                                                       ignore_index=ignore_label)
+                                                 weight=weight,
+                                                 ignore_index=ignore_label)
         else:
-            print("w/o class balance")
             self.criterion = nn.CrossEntropyLoss(reduction=reduction,
-                                                       ignore_index=ignore_label)
+                                                 ignore_index=ignore_label)
 
     def forward(self, pred, target):
         b, c, h, w = pred.size()
@@ -189,7 +161,7 @@ class ProbOhemCrossEntropy2d(nn.Module):
             print('Labels: {}'.format(num_valid))
             pass
         elif num_valid > 0:
-            prob = prob.masked_fill_(1 - valid_mask, 1)     #
+            prob = prob.masked_fill_(1 - valid_mask, 1)  #
             mask_prob = prob[
                 target, torch.arange(len(target), dtype=torch.long)]
             threshold = self.thresh
@@ -201,7 +173,6 @@ class ProbOhemCrossEntropy2d(nn.Module):
                 kept_mask = mask_prob.le(threshold)
                 target = target * kept_mask.long()
                 valid_mask = valid_mask * kept_mask
-                # print('Valid Mask: {}'.format(valid_mask.sum()))
 
         target = target.masked_fill_(1 - valid_mask, self.ignore_label)
         target = target.view(b, h, w)
@@ -209,27 +180,15 @@ class ProbOhemCrossEntropy2d(nn.Module):
         return self.criterion(pred, target)
 
 
-# ==========================================================================================================================
-# ==========================================================================================================================
 # class-balanced loss
 class CrossEntropy2d(nn.Module):
 
-    def __init__(self, size_average=True, ignore_label=255, use_weight=True):
+    def __init__(self, size_average=True, ignore_label=255):
         super(CrossEntropy2d, self).__init__()
         self.size_average = size_average
         self.ignore_label = ignore_label
-        self.use_weight   = use_weight
-        # if self.use_weight:
-        #     self.weight = torch.FloatTensor(
-        #         [0.8373, 0.918, 0.866, 1.0345, 1.0166, 0.9969, 0.9754, 1.0489,
-        #          0.8786, 1.0023, 0.9539, 0.9843, 1.1116, 0.9037, 1.0865, 1.0955,
-        #          1.0865, 1.1529, 1.0507])
-        #     print('CrossEntropy2d weights : {}'.format(self.weight))
-        # else:
-        #     self.weight = None
 
-
-    def forward(self, predict, target, weight=None):
+    def forward(self, predict, target, weight=None, num_class=0):
 
         """
             Args:
@@ -238,25 +197,19 @@ class CrossEntropy2d(nn.Module):
                 weight (Tensor, optional): a manual rescaling weight given to each class.
                                            If given, has to be a Tensor of size "nclasses"
         """
-        # Variable(torch.randn(2,10)
-        if self.use_weight:
+        if weight is not None:
             print('target size {}'.format(target.shape))
-            freq = np.zeros(19)
-            for k in range(19):
+            freq = np.zeros(num_class)
+            for k in range(num_class):
                 mask = (target[:, :, :] == k)
                 freq[k] = torch.sum(mask)
                 print('{}th frequency {}'.format(k, freq[k]))
             weight = freq / np.sum(freq)
             print(weight)
-            self.weight = torch.FloatTensor(weight)
-            print('Online class weight: {}'.format(self.weight))
-        else:
-            self.weight = None
+            weight = torch.FloatTensor(weight)
+            print('Online class weight: {}'.format(weight))
 
-
-        criterion = nn.CrossEntropyLoss(weight=self.weight, ignore_index=self.ignore_label)
-        # torch.FloatTensor([2.87, 13.19, 5.11, 37.98, 35.14, 30.9, 26.23, 40.24, 6.66, 32.07, 21.08, 28.14, 46.01, 10.35, 44.25, 44.9, 44.25, 47.87, 40.39])
-        #weight = Variable(torch.FloatTensor([1, 1.49, 1.28, 1.62, 1.62, 1.62, 1.64, 1.62, 1.49, 1.62, 1.43, 1.62, 1.64, 1.43, 1.64, 1.64, 1.64, 1.64, 1.62]), requires_grad=False).cuda()
+        criterion = nn.CrossEntropyLoss(weight=weight, ignore_index=self.ignore_label)
         assert not target.requires_grad
         assert predict.dim() == 4
         assert target.dim() == 3
@@ -272,10 +225,6 @@ class CrossEntropy2d(nn.Module):
         predict = predict[target_mask.view(n, h, w, 1).repeat(1, 1, 1, c)].view(-1, c)
         loss = criterion(predict, target)
         return loss
-# ==========================================================================================================================
-# ==========================================================================================================================
-
-
 
 
 class LovaszSoftmax(nn.Module):
