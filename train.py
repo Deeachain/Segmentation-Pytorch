@@ -207,7 +207,6 @@ def train_model(args):
             checkpoint = torch.load(args.resume)
             start_epoch = checkpoint['epoch'] + 1
             model.load_state_dict(checkpoint['model'])
-            # model.load_state_dict(convert_state_dict(checkpoint['model']))
             print("loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
         else:
             print("no checkpoint found at '{}'".format(args.resume))
@@ -228,24 +227,13 @@ def train_model(args):
             "%s\t%s\t\t%s\t%s\t%s\t%s\n" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'FWIOU(Val)', 'mIOU(Val)'))
     logger.flush()
 
+
     # define optimization strategy
     if args.optim == 'sgd':
         optimizer = torch.optim.SGD(
             filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, momentum=0.9, weight_decay=1e-4)
     elif args.optim == 'adam':
         optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.9, 0.999), eps=1e-08,
-            weight_decay=1e-4)
-    elif args.optim == 'radam':
-        optimizer = RAdam(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.90, 0.999), eps=1e-08,
-            weight_decay=1e-4)
-    elif args.optim == 'ranger':
-        optimizer = Ranger(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.95, 0.999), eps=1e-08,
-            weight_decay=1e-4)
-    elif args.optim == 'adamw':
-        optimizer = AdamW(
             filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.9, 0.999), eps=1e-08,
             weight_decay=1e-4)
 
