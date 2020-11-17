@@ -1,26 +1,19 @@
 import os, sys
-import time
 import torch
-from torch import optim
 import torch.nn as nn
 import timeit
 import math
-import numpy as np
-import matplotlib
-
-matplotlib.use('Agg')
-from matplotlib import pyplot as plt
 import torch.backends.cudnn as cudnn
 from argparse import ArgumentParser
 # user
 from builders.model_builder import build_model
-from builders.dataset_builder import build_dataset_train
+from builders.dataset_builder import build_dataset_train, build_dataset_sliding_test
+from builders.loss_builder import build_loss
+from builders.validation_builder import predict_sliding
 from utils.utils import setup_seed, init_weight, netParams
-from utils.metric.SegmentationMetric import SegmentationMetric
-from utils.losses.loss import LovaszSoftmax, CrossEntropyLoss2d, CrossEntropyLoss2dLabelSmooth, \
-    ProbOhemCrossEntropy2d, FocalLoss2d
-from utils.optim import RAdam, Ranger, AdamW
 from utils.scheduler.lr_scheduler import WarmupPolyLR
+from utils.plot_log import draw_log
+from utils.record_log import record_log
 from utils.earlyStopping import EarlyStopping
 from tqdm import tqdm
 
@@ -49,7 +42,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
         args.per_iter = total_batches
         args.max_iter = args.max_epochs * args.per_iter
         args.cur_iter = epoch * args.per_iter + iteration
-        # learming scheduling
+        # learning scheduling
         if args.lr_schedule == 'poly':
             lambda1 = lambda epoch: math.pow((1 - (args.cur_iter / args.max_iter)), args.poly_exp)
             scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
@@ -82,123 +75,61 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
     return average_epoch_loss_train, lr
 
 
-def val(args, val_loader, criteria, model):
-    """
-    args:
-      val_loader: loaded for validation dataset
-      model: model
-    return: mean IoU and IoU class
-    """
-    # evaluation mode
-    model.eval()
-    total_batches = len(val_loader)
-
-    val_loss = []
-    metric = SegmentationMetric(args.classes)
-    pbar = tqdm(iterable=enumerate(val_loader), total=total_batches, desc='Val')
-    for iteration, (input, label, size, name) in pbar:
-        with torch.no_grad():
-            input_var = input.cuda().float()
-            output = model(input_var)
-            if type(output) is tuple:
-                output = output[0]
-
-        loss = criteria(output, label.long().cuda())
-        val_loss.append(loss)
-        output = output.cpu().data[0].numpy()
-        gt = np.asarray(label[0].numpy(), dtype=np.uint8)
-        output = output.transpose(1, 2, 0)
-        output = np.asarray(np.argmax(output, axis=2), dtype=np.uint8)
-        # 计算miou
-        metric.addBatch(imgPredict=output.flatten(), imgLabel=gt.flatten())
-
-    val_loss = sum(val_loss) / len(val_loss)
-
-    pa = metric.pixelAccuracy()
-    cpa = metric.classPixelAccuracy()
-    mpa = metric.meanPixelAccuracy()
-    Miou, PerMiou_set = metric.meanIntersectionOverUnion()
-    FWIoU = metric.Frequency_Weighted_Intersection_over_Union()
-
-    return val_loss, FWIoU, Miou, PerMiou_set
-
-
-def train_model(args):
+def main(args):
     """
     args:
        args: global arguments
     """
     print(args)
-
-    if args.cuda:
-        print("use gpu id: '{}'".format(args.gpus))
-        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
-        if not torch.cuda.is_available():
-            raise Exception("No GPU found or Wrong gpu id, please run without --cuda")
-
     # set the seed
     setup_seed(GLOBAL_SEED)
-    print("set Global Seed: ", GLOBAL_SEED)
     cudnn.enabled = True
-    print("building network")
+    cudnn.benchmark = True  # 寻找最优配置
+    cudnn.deterministic = True  # 减少波动
+    torch.cuda.empty_cache()  # 清空显卡缓存
 
     # build the model and initialization
     model = build_model(args.model, num_classes=args.classes)
     init_weight(model, nn.init.kaiming_normal_, nn.BatchNorm2d, 1e-3, 0.1, mode='fan_in')
 
-    print("computing network parameters and FLOPs")
-    total_paramters = netParams(model)
-    print("the number of parameters: %d ==> %.2f M" % (total_paramters, (total_paramters / 1e6)))
-
     # load data and data augmentation
     datas, trainLoader, valLoader = build_dataset_train(args.dataset, args.input_size, args.batch_size, args.train_type,
                                                         args.random_scale, args.random_mirror, args.num_workers)
+    # load the test set
+    datas, testLoader = build_dataset_sliding_test(args.dataset, args.num_workers, none_gt=True)
 
-    args.per_iter = len(trainLoader)
-    args.max_iter = args.max_epochs * args.per_iter
-
+    print("the number of parameters: %d ==> %.2f M" % (netParams(model), (netParams(model) / 1e6)))
     print('Dataset statistics')
     print("data['classWeights']: ", datas['classWeights'])
     print('mean and std: ', datas['mean'], datas['std'])
 
     # define loss function, respectively
-    if args.dataset == 'cityscapes':
-        weight = torch.FloatTensor([0.8373, 0.918, 0.866, 1.0345, 1.0166, 0.9969, 0.9754, 1.0489,
-                 0.8786, 1.0023, 0.9539, 0.9843, 1.1116, 0.9037, 1.0865, 1.0955,
-                 1.0865, 1.1529, 1.0507])
-    else:
-        weight = torch.from_numpy(datas['classWeights'])
-    if args.use_ohem:
-        min_kept = int(args.batch_size // len(args.gpus) * h * w // 16)
-        criteria = ProbOhemCrossEntropy2d(weight=weight, ignore_label=ignore_label, thresh=0.7, min_kept=min_kept)
-    elif args.use_label_smoothing:
-        criteria = CrossEntropyLoss2dLabelSmooth(weight=weight, ignore_label=ignore_label)
-    elif args.use_lovaszsoftmax:
-        criteria = LovaszSoftmax(ignore_index=ignore_label)
-    elif args.use_focal:
-        criteria = FocalLoss2d(weight=weight, ignore_index=ignore_label)
+    criteria = build_loss(args, datas, ignore_label)
+
+    # define optimization strategy
+    if args.optim == 'sgd':
+        optimizer = torch.optim.SGD(
+            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, momentum=0.9, weight_decay=1e-4)
+    elif args.optim == 'adam':
+        optimizer = torch.optim.Adam(
+            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.9, 0.999), eps=1e-08,
+            weight_decay=1e-4)
 
     if args.cuda:
+        print("use gpu id: '{}'".format(args.gpus))
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
         criteria = criteria.cuda()
         if torch.cuda.device_count() > 1:
             print("torch.cuda.device_count()=", torch.cuda.device_count())
             args.gpu_nums = torch.cuda.device_count()
-            model = nn.DataParallel(model).cuda()  # multi-card data parallel
+            model = nn.DataParallel(model).cuda()
         else:
             args.gpu_nums = 1
             print("single GPU for training")
-            model = model.cuda()  # 1-card data parallel
+            model = model.cuda()
 
-    args.savedir = (args.savedir + args.dataset + '/' + args.model + 'bs'
-                    + str(args.batch_size) + 'gpu' + str(args.gpu_nums) + "_" + str(args.train_type) + '/')
-
-    if not os.path.exists(args.savedir):
-        os.makedirs(args.savedir)
-
-    with open(args.savedir + 'args.txt', 'w') as f:
-        f.write('mean:{}\nstd:{}\n'.format(datas['mean'], datas['std']))
-        f.write("Parameters: {} Seed: {}\n".format(str(total_paramters), GLOBAL_SEED))
-        f.write(str(args))
+        if not torch.cuda.is_available():
+            raise Exception("No GPU found or Wrong gpu id, please run without --cuda")
 
     start_epoch = 0
     # continue training
@@ -211,34 +142,27 @@ def train_model(args):
         else:
             print("no checkpoint found at '{}'".format(args.resume))
 
-    model.train()
-    cudnn.benchmark = True  # 寻找最优配置
-    cudnn.deterministic = True  # 减少波动
-
     # initialize the early_stopping object
     early_stopping = EarlyStopping(patience=50)
 
-    logFileLoc = args.savedir + args.logFile
-    if os.path.isfile(logFileLoc):
-        logger = open(logFileLoc, 'a')
-    else:
-        logger = open(logFileLoc, 'w')
-        logger.write(
-            "%s\t%s\t\t%s\t%s\t%s\t%s\n" % ('Epoch', '   lr', 'Loss(Tr)', 'Loss(Val)', 'FWIOU(Val)', 'mIOU(Val)'))
+    # initial log file val output save
+    args.savedir = (args.savedir + args.dataset + '/' + args.model + 'bs'
+                    + str(args.batch_size) + 'gpu' + str(args.gpu_nums) + "_" + str(args.train_type) + '/')
+    if not os.path.exists(args.savedir):
+        os.makedirs(args.savedir)
+
+    # save_seg_dir
+    args.save_seg_dir = os.path.join(args.savedir, 'predict_sliding')
+    if not os.path.exists(args.save_seg_dir):
+        os.makedirs(args.save_seg_dir)
+
+    recorder = record_log(args)
+    recorder.record_args(datas, netParams(model), GLOBAL_SEED)
+
+    logger = recorder.initial_logfile()
     logger.flush()
 
-
-    # define optimization strategy
-    if args.optim == 'sgd':
-        optimizer = torch.optim.SGD(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, momentum=0.9, weight_decay=1e-4)
-    elif args.optim == 'adam':
-        optimizer = torch.optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.9, 0.999), eps=1e-08,
-            weight_decay=1e-4)
-
     lossTr_list = []
-    epoches = []
     mIOU_val_list = []
     lossVal_list = []
     print('>>>>>>>>>>>beginning training>>>>>>>>>>>')
@@ -249,93 +173,35 @@ def train_model(args):
 
         # validation
         if epoch % args.val_epochs == 0 or epoch == args.max_epochs - 1:
-            epoches.append(epoch)
-            val_loss, FWIoU, mIOU_val, per_class_iu = val(args, valLoader, criteria, model)
+            val_loss, FWIoU, mIOU_val, per_class_iu = predict_sliding(args, model, testLoader, args.tile_size, criteria,
+                                                                      mode='validation')
             mIOU_val_list.append(mIOU_val)
             lossVal_list.append(val_loss.item())
-            # record train information
-            logger.write(
-                "%d\t%.6f\t%.4f\t\t%.4f\t\t%0.4f\t\t%0.4f\t\t%s\n" % (
-                    epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, per_class_iu))
-            logger.flush()
-            print(
-                "Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tFWIOU(val) = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
-                    epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, str(per_class_iu)))
+            # record trainVal information
+            recorder.record_trainVal_log(logger, epoch, lr, lossTr, val_loss, FWIoU, mIOU_val, per_class_iu)
         else:
             # record train information
-            logger.write("%d\t%.6f\t%.4f\n" % (epoch, lr, lossTr))
-            logger.flush()
-            print("Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\n" % (epoch, lr, lossTr))
+            recorder.record_train_log(logger, epoch, lr, lossTr)
+
+        # draw log fig
+        draw_log(args, epoch, mIOU_val_list, lossVal_list)
 
         # save the model
         model_file_name = args.savedir + '/model_' + str(epoch) + '.pth'
         state = {"epoch": epoch, "model": model.state_dict()}
-
-        # Individual Setting for save model
         if epoch >= args.max_epochs - 10:
             torch.save(state, model_file_name)
         elif epoch % 10 == 0:
             torch.save(state, model_file_name)
 
-        f = open(args.savedir + 'log.txt', 'r')
-        next(f)
-        # draw plots for visualization
-        if args.val_epochs == 1:
-            lossTr_list = []
-            lossVal_list = []
-            for line in f.readlines():
-                lossTr_list.append(float(line.strip().split()[2]))
-                lossVal_list.append(float(line.strip().split()[3]))
-            assert len(lossTr_list) == len(lossVal_list)
-            fig1, ax1 = plt.subplots(figsize=(11, 8))
-            ax1.plot(range(0, epoch + 1), lossTr_list, label='Train_loss')
-            ax1.plot(range(0, epoch + 1), lossVal_list, label='Val_loss')
-            ax1.set_title("Average training loss vs epochs")
-            ax1.set_xlabel("Epochs")
-            ax1.set_ylabel("Current loss")
-            ax1.legend()
-            plt.savefig(args.savedir + "loss.png")
-            plt.close('all')
-            plt.clf()
-            # plt Miou
-            fig2, ax2 = plt.subplots(figsize=(11, 8))
-            ax2.plot(range(0, epoch + 1), mIOU_val_list, label="Val IoU")
-            ax2.set_title("Average IoU vs epochs")
-            ax2.set_xlabel("Epochs")
-            ax2.set_ylabel("Current IoU")
-            ax2.legend()
-            plt.savefig(args.savedir + "mIou.png")
-            plt.close('all')
-        else:
-            fig1, ax1 = plt.subplots(figsize=(11, 8))
-            epoch_list = []
-            lossTr_list = []
-            for index, line in enumerate(f.readlines()):
-                lossTr_list.append(float(line.strip().split()[2]))
-                if index % args.val_epochs == 0:
-                    epoch_list.append(int(line.strip().split()[0]))
-            ax1.plot(range(0, epoch + 1), lossTr_list, label='Train_loss')
-            ax1.plot(epoch_list, lossVal_list, label='Val_loss')
-            ax1.set_title("Average loss vs epochs")
-            ax1.set_xlabel("Epochs")
-            ax1.set_ylabel("Current loss")
-            ax1.legend()
-            plt.savefig(args.savedir + "loss.png")
-            plt.clf()
-            fig2, ax2 = plt.subplots(figsize=(11, 8))
-            ax2.plot(epoch_list, mIOU_val_list, label="Val IoU")
-            ax2.set_title("Average IoU vs epochs")
-            ax2.set_xlabel("Epochs")
-            ax2.set_ylabel("Current IoU")
-            ax2.legend()
-            plt.savefig(args.savedir + "mIou.png")
-            plt.close('all')
-
+        # early_stopping monitor
         early_stopping.monitor(monitor=mIOU_val)
         if early_stopping.early_stop:
             if not os.path.exists(model_file_name):
                 torch.save(state, model_file_name)
-                val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model)
+                val_loss, FWIoU, mIOU_val, per_class_iu = predict_sliding(args, model, testLoader, args.tile_size,
+                                                                          criteria,
+                                                                          mode='validation')
                 print(
                     "Epoch  %d\tlr= %.6f\tTrain Loss = %.4f\tVal Loss = %.4f\tmIOU(val) = %.4f\tper_class_iu= %s\n" % (
                         epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
@@ -348,12 +214,11 @@ def train_model(args):
 def parse_args():
     parser = ArgumentParser(description='Efficient semantic segmentation')
     # model and dataset
-    parser.add_argument('--model', type=str, default="ENet", help="model name: (default ENet)")
+    parser.add_argument('--model', type=str, default="DualSeg_res50", help="model name: (default ENet)")
     parser.add_argument('--dataset', type=str, default="paris", help="dataset: cityscapes or camvid")
-    parser.add_argument('--input_size', type=str, default="360,480", help="input size of model")
+    parser.add_argument('--input_size', type=str, default=(256, 256), help="input size of model")
+    parser.add_argument('--tile_size', type=str, default=(256, 256), help="tile size for sliding predict")
     parser.add_argument('--num_workers', type=int, default=4, help=" the number of parallel threads")
-    parser.add_argument('--classes', type=int, default=3,
-                        help="the number of classes in the dataset. 19 and 11 for cityscapes and camvid, respectively")
     parser.add_argument('--train_type', type=str, default="train",
                         help="ontrain for training on train set, ontrainval for training on train+val set")
     # training hyper params
@@ -363,8 +228,8 @@ def parse_args():
                         help="the number of epochs: 100 for val set")
     parser.add_argument('--random_mirror', type=bool, default=True, help="input image random mirror")
     parser.add_argument('--random_scale', type=bool, default=True, help="input image resize 0.5 to 2")
-    parser.add_argument('--lr', type=float, default=5e-4, help="initial learning rate")
-    parser.add_argument('--batch_size', type=int, default=8, help="the batch size is set to 16 for 2 GPUs")
+    parser.add_argument('--lr', type=float, default=1e-3, help="initial learning rate")
+    parser.add_argument('--batch_size', type=int, default=4, help="the batch size is set to 16 for 2 GPUs")
     parser.add_argument('--optim', type=str.lower, default='adam', choices=['sgd', 'adam', 'radam', 'ranger'],
                         help="select optimizer")
     parser.add_argument('--lr_schedule', type=str, default='warmpoly', help='name of lr schedule: poly')
@@ -420,7 +285,7 @@ if __name__ == '__main__':
         raise NotImplementedError(
             "This repository now supports datasets %s is not included" % args.dataset)
 
-    train_model(args)
+    main(args)
     end = timeit.default_timer()
     hour = 1.0 * (end - start) / 3600
     minute = (hour - int(hour)) * 60
