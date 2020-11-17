@@ -29,8 +29,9 @@ def pad_label(img, target_size):
 # 滑动窗口法
 # image.shape(1,3,1024,2048)、tile_size=(512,512)、classes=3、flip=True、recur=1
 # image:需要预测的图片(1,3,3072,3328);tile_size:小方块大小;
-def predict_sliding(args, model, valLoader, tile_size):
+def predict_sliding(args, model, valLoader, tile_size, criteria, mode='predict'):
     total_batches = len(valLoader)
+    val_loss = 0
     metric = SegmentationMetric(args.classes)  # args.classes表示有args.classes个分类
     pbar = tqdm(iterable=enumerate(valLoader), total=total_batches, desc='Predicting')
     for i, (input, gt, size, name) in pbar:
@@ -52,7 +53,9 @@ def predict_sliding(args, model, valLoader, tile_size):
                 y1 = max(int(y2 - tile_size[0]), 0)  # y1 = max(512-512, 0)
 
                 img = input[:, :, y1:y2, x1:x2]  # 滑动窗口对应的图像 imge[:, :, 0:512, 0:512]
+                label = gt[:, :, y1:y2, x1:x2]
                 padded_img = pad_image(img, tile_size)  # padding 确保扣下来的图像为512*512
+                padded_label = pad_label(label, tile_size)
                 # plt.imshow(padded_img)
                 # plt.show()
 
@@ -65,7 +68,8 @@ def predict_sliding(args, model, valLoader, tile_size):
                 if isinstance(padded_prediction, list):
                     padded_prediction = padded_prediction[0]  # shape(1,3,512,512)
 
-
+                if mode == 'validation':
+                    val_loss = criteria(padded_prediction, padded_label)
                 padded_prediction = padded_prediction.cpu().data[0].numpy().transpose(1, 2, 0)  # 通道位置变换(512,512,3)
                 prediction = padded_prediction[0:img.shape[2], 0:img.shape[3], :]  # 扣下相应面积 shape(512,512,3)
                 count_predictions[y1:y2, x1:x2] += 1  # 窗口区域内的计数矩阵加1
@@ -95,7 +99,7 @@ def predict_sliding(args, model, valLoader, tile_size):
     with open(result, 'w') as f:
         f.write(str(Miou))
         f.write('\n{}'.format(PerMiou_set))
-    
+
     return val_loss, FWIoU, Miou, PerMiou_set
 
 
