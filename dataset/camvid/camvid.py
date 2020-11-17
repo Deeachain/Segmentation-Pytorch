@@ -21,8 +21,8 @@ class CamVidDataSet(data.Dataset):
 
     """
 
-    def __init__(self, root='', list_path='', max_iters=None, crop_size=(360, 360),
-                 mean=(128, 128, 128), scale=True, mirror=True, ignore_label=11):
+    def __init__(self, root='', list_path='', max_iters=None, crop_size=(512, 1024), mean=(128, 128, 128), scale=True,
+                 mirror=True, ignore_label=255):
         self.root = root
         self.list_path = list_path
         self.crop_h, self.crop_w = crop_size
@@ -35,19 +35,16 @@ class CamVidDataSet(data.Dataset):
             self.img_ids = self.img_ids * int(np.ceil(float(max_iters) / len(self.img_ids)))
         self.files = []
 
-        # for split in ["train", "trainval", "val"]:
         for name in self.img_ids:
             img_file = osp.join(self.root, name.split()[0])
-            # print(img_file)
             label_file = osp.join(self.root, name.split()[1])
-            # print(label_file)
             self.files.append({
                 "img": img_file,
                 "label": label_file,
                 "name": name
             })
 
-        print("length of train set: ", len(self.files))
+        print("length of train dataset: ", len(self.files))
 
     def __len__(self):
         return len(self.files)
@@ -58,18 +55,17 @@ class CamVidDataSet(data.Dataset):
         label = cv2.imread(datafiles["label"], cv2.IMREAD_GRAYSCALE)
         size = image.shape
         name = datafiles["name"]
+
+        # random resize between 0.5 and 2
         if self.scale:
-            scale = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0]  # random resize between 0.5 and 2
-            f_scale = scale[random.randint(0, 5)]
-            # f_scale = 0.5 + random.randint(0, 15) / 10.0  #random resize between 0.5 and 2
+            f_scale = 0.5 + random.randint(0, 15) / 10.0
             image = cv2.resize(image, None, fx=f_scale, fy=f_scale, interpolation=cv2.INTER_LINEAR)
             label = cv2.resize(label, None, fx=f_scale, fy=f_scale, interpolation=cv2.INTER_NEAREST)
 
         image = np.asarray(image, np.float32)
+        image = image / 255.0 - 0.5
+        image = image[:, :, ::-1]  # BGR change to RGB
 
-        image -= self.mean
-        # image = image.astype(np.float32) / 255.0
-        image = image[:, :, ::-1]  # change to RGB
         img_h, img_w = label.shape
         pad_h = max(self.crop_h - img_h, 0)
         pad_w = max(self.crop_w - img_w, 0)
@@ -86,7 +82,7 @@ class CamVidDataSet(data.Dataset):
         img_h, img_w = label_pad.shape
         h_off = random.randint(0, img_h - self.crop_h)
         w_off = random.randint(0, img_w - self.crop_w)
-        # roi = cv2.Rect(w_off, h_off, self.crop_w, self.crop_h);
+
         image = np.asarray(img_pad[h_off: h_off + self.crop_h, w_off: w_off + self.crop_w], np.float32)
         label = np.asarray(label_pad[h_off: h_off + self.crop_h, w_off: w_off + self.crop_w], np.float32)
 
@@ -100,38 +96,32 @@ class CamVidDataSet(data.Dataset):
         return image.copy(), label.copy(), np.array(size), name
 
 
-class CamVidValDataSet(data.Dataset):
+class CamVidTestDataSet(data.Dataset):
     """ 
-       CamVidValDataSet is employed to load val set
+       CamVidTestDataSet is employed to load test set
        Args:
         root: the CamVid dataset path, 
-        list_path: camvid_val_list.txt, include partial path
+        list_path: camvid_test_list.txt, include partial path
 
     """
 
-    def __init__(self, root='', list_path='',
-                 f_scale=1, mean=(128, 128, 128), ignore_label=11):
+    def __init__(self, root='', list_path='', mean=(128, 128, 128), ignore_label=255):
         self.root = root
         self.list_path = list_path
         self.ignore_label = ignore_label
         self.mean = mean
-        self.f_scale = f_scale
         self.img_ids = [i_id.strip() for i_id in open(list_path)]
         self.files = []
         for name in self.img_ids:
             img_file = osp.join(self.root, name.split()[0])
-            # print(img_file)
             label_file = osp.join(self.root, name.split()[1])
-            # print(label_file)
-            image_name = name.strip().split()[0].strip().split('/', 1)[1].split('.')[0]
-            # print("image_name:  ",image_name)
+            image_name = name.strip().split()[0].strip().split('/')[-1].split('.')[0]
             self.files.append({
                 "img": img_file,
                 "label": label_file,
                 "name": image_name
             })
-
-        print("length of Validation set: ", len(self.files))
+        print("lenth of dataset: ", len(self.files))
 
     def __len__(self):
         return len(self.files)
@@ -142,67 +132,12 @@ class CamVidValDataSet(data.Dataset):
         label = cv2.imread(datafiles["label"], cv2.IMREAD_GRAYSCALE)
         size = image.shape
         name = datafiles["name"]
-        if self.f_scale != 1:
-            image = cv2.resize(image, None, fx=self.f_scale, fy=self.f_scale, interpolation=cv2.INTER_LINEAR)
-            # label = cv2.resize(label, None, fx=self.f_scale, fy=self.f_scale, interpolation = cv2.INTER_NEAREST)
 
         image = np.asarray(image, np.float32)
-
-        image -= self.mean
-        # image = image.astype(np.float32) / 255.0
-        image = image[:, :, ::-1]  # revert to RGB
+        image = image / 255.0 - 0.5
+        image = image[:, :, ::-1]  # BGR change to RGB
         image = image.transpose((2, 0, 1))  # HWC -> CHW
-
-        # print('image.shape:',image.shape)
         return image.copy(), label.copy(), np.array(size), name
-
-
-class CamVidTestDataSet(data.Dataset):
-    """ 
-       CamVidTestDataSet is employed to load test set
-       Args:
-        root: the CamVid dataset path, 
-        list_path: camvid_test_list.txt, include partial path
-
-    """
-
-    def __init__(self, root='', list_path='',
-                 mean=(128, 128, 128), ignore_label=11):
-        self.root = root
-        self.list_path = list_path
-        self.ignore_label = ignore_label
-        self.mean = mean
-        self.img_ids = [i_id.strip() for i_id in open(list_path)]
-        self.files = []
-        for name in self.img_ids:
-            img_file = osp.join(self.root, name.split()[0])
-            # print(img_file)
-            image_name = name.strip().split()[0].strip().split('/', 1)[1].split('.')[0]
-            # print(image_name)
-            self.files.append({
-                "img": img_file,
-                "name": image_name
-            })
-        print("lenth of test set ", len(self.files))
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, index):
-        datafiles = self.files[index]
-
-        image = cv2.imread(datafiles["img"], cv2.IMREAD_COLOR)
-        name = datafiles["name"]
-
-        image = np.asarray(image, np.float32)
-
-        size = image.shape
-        image -= self.mean
-        # image = image.astype(np.float32) / 255.0
-        image = image[:, :, ::-1]  # change to RGB
-        image = image.transpose((2, 0, 1))  # HWC -> CHW
-
-        return image.copy(), np.array(size), name
 
 
 class CamVidTrainInform:
@@ -250,8 +185,7 @@ class CamVidTrainInform:
         no_files = 0
         min_val_al = 0
         max_val_al = 0
-        with open(fileName, 'r') as textFile:
-            # with open(fileName, 'r') as textFile:
+        with open(self.data_dir + '/' + fileName, 'r') as textFile:
             for line in textFile:
                 # we expect the text file to contain the data in following format
                 # <RGB Image> <Label Image>
