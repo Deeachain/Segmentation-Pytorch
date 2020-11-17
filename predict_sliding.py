@@ -151,16 +151,16 @@ def test_model(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--model', default="ENet", help="model name: Context Guided Network (CGNet)")
+    parser.add_argument('--model', default="UNet", help="model name: Context Guided Network (CGNet)")
     parser.add_argument('--dataset', default="paris", help="dataset: cityscapes or camvid")
     parser.add_argument('--num_workers', type=int, default=1, help="the number of parallel threads")
     parser.add_argument('--num_loss', type=int, default=1, help="the number of loss")
     parser.add_argument('--batch_size', type=int, default=1,
                         help=" the batch_size is set to 1 when evaluating or testing")
-    parser.add_argument('--tile_size', type=int, default=1024,
+    parser.add_argument('--tile_size', type=int, default=512,
                         help=" the tile_size is when evaluating or testing")
     parser.add_argument('--checkpoint', type=str,
-                        default='/media/ding/Study/graduate/code/Efficient-Segmentation-Networks/checkpoint/paris/ENetbs16gpu1_train/model_91.pth',
+                        default='/media/ding/Study/graduate/Segmentation_Torch/checkpoint/paris/UNetbs8gpu1_train/model_250.pth',
                         help="use the file to load the checkpoint for evaluating or testing ")
     parser.add_argument('--save_seg_dir', type=str, default="./outputs/",
                         help="saving path of prediction result")

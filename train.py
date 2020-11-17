@@ -333,7 +333,6 @@ def train_model(args):
 
         early_stopping.monitor(monitor=mIOU_val)
         if early_stopping.early_stop:
-            print("Early stopping and Save checkpoint")
             if not os.path.exists(model_file_name):
                 torch.save(state, model_file_name)
                 val_loss, mIOU_val, per_class_iu = val(args, valLoader, criteria, model)
@@ -342,6 +341,7 @@ def train_model(args):
                         epoch, lr, lossTr, val_loss, mIOU_val, str(per_class_iu)))
             break
 
+    print("Early stopping and Save checkpoint")
     logger.close()
 
 
