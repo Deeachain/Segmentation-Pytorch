@@ -93,10 +93,10 @@ def main(args):
     init_weight(model, nn.init.kaiming_normal_, nn.BatchNorm2d, 1e-3, 0.1, mode='fan_in')
 
     # load data and data augmentation
-    datas, trainLoader, valLoader = build_dataset_train(args.dataset, args.input_size, args.batch_size, args.train_type,
+    datas, trainLoader = build_dataset_train(args.dataset, args.input_size, args.batch_size, args.train_type,
                                                         args.random_scale, args.random_mirror, args.num_workers)
-    # load the test set
-    datas, testLoader = build_dataset_sliding_test(args.dataset, args.num_workers, none_gt=True)
+    # load the test set, if want set cityscapes test dataset change none_gt=False
+    testLoader = build_dataset_test(args.dataset, args.num_workers, sliding=args.sliding, none_gt=True)
 
     print("the number of parameters: %d ==> %.2f M" % (netParams(model), (netParams(model) / 1e6)))
     print('Dataset statistics')
@@ -171,7 +171,7 @@ def main(args):
         lossTr, lr = train(args, trainLoader, model, criteria, optimizer, epoch)
         lossTr_list.append(lossTr)
 
-        # validation
+        # validation if mode==validation, predict with label; else mode==test predict without label.
         if epoch % args.val_epochs == 0 or epoch == args.max_epochs - 1:
             val_loss, FWIoU, mIOU_val, per_class_iu = predict_sliding(args, model, testLoader, args.tile_size, criteria,
                                                                       mode='validation')
