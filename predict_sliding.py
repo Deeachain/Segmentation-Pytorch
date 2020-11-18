@@ -4,7 +4,8 @@ import torch.backends.cudnn as cudnn
 from argparse import ArgumentParser
 from builders.model_builder import build_model
 from builders.dataset_builder import build_dataset_test
-from builders.validation_builder import predict_sliding
+from builders.loss_builder import build_loss
+from builders.validation_builder import predict_whole, predict_sliding, predict_multiscale
 
 
 def main(args):
@@ -42,9 +43,12 @@ def main(args):
             print("no checkpoint found at '{}'".format(args.checkpoint))
             raise FileNotFoundError("no checkpoint found at '{}'".format(args.checkpoint))
 
+    # define loss function, respectively
+    criteria = build_loss(args, None, 255)
+
     print(">>>>>>>>>>>beginning testing>>>>>>>>>>>")
-    predict_sliding(args, model.eval(), image=testLoader, tile_size=(args.tile_size, args.tile_size),
-                    classes=args.classes)
+    predict_sliding(args, model.eval(), testLoader=testLoader, tile_size=(args.tile_size, args.tile_size),
+                    criteria=criteria, mode='validation')
 
 
 if __name__ == '__main__':
@@ -61,6 +65,9 @@ if __name__ == '__main__':
                         help="use the file to load the checkpoint for evaluating or testing ")
     parser.add_argument('--save_seg_dir', type=str, default="./outputs/",
                         help="saving path of prediction result")
+    parser.add_argument('--loss', type=str, default="CrossEntropyLoss2d",
+                        choices=['CrossEntropyLoss2d', 'ProbOhemCrossEntropy2d', 'CrossEntropyLoss2dLabelSmooth',
+                                 'LovaszSoftmax', 'FocalLoss2d'], help = "choice loss for train or val in list")
     parser.add_argument('--cuda', default=True, help="run on CPU or GPU")
     parser.add_argument("--gpus", default="0", type=str, help="gpu ids (default: 0)")
     args = parser.parse_args()

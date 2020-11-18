@@ -94,7 +94,7 @@ def main(args):
 
     # load data and data augmentation
     datas, trainLoader = build_dataset_train(args.dataset, args.input_size, args.batch_size, args.train_type,
-                                                        args.random_scale, args.random_mirror, args.num_workers)
+                                             args.random_scale, args.random_mirror, args.num_workers)
     # load the test set, if want set cityscapes test dataset change none_gt=False
     testLoader = build_dataset_test(args.dataset, args.num_workers, sliding=args.sliding, none_gt=True)
 
@@ -237,13 +237,9 @@ def parse_args():
     parser.add_argument('--poly_exp', type=float, default=0.9, help='polynomial LR exponent')
     parser.add_argument('--warmup_iters', type=int, default=500, help='warmup iterations')
     parser.add_argument('--warmup_factor', type=float, default=0.3, help='warm up start lr=warmup_factor*lr')
-    parser.add_argument('--use_label_smoothing', default=False,
-                        help="CrossEntropy2d Loss with label smoothing or not")
-    parser.add_argument('--use_ohem', default=False,
-                        help='OhemCrossEntropy2d Loss for cityscapes dataset')
-    parser.add_argument('--use_lovaszsoftmax', default=False,
-                        help='LovaszSoftmax Loss for cityscapes dataset')
-    parser.add_argument('--use_focal', default=False, help=' FocalLoss2d for cityscapes dataset')
+    parser.add_argument('--loss', type=str, default="ProbOhemCrossEntropy2d",
+                        choices=['CrossEntropyLoss2d', 'ProbOhemCrossEntropy2d', 'CrossEntropyLoss2dLabelSmooth',
+                                 'LovaszSoftmax', 'FocalLoss2d'], help = "choice loss for train or val in list")
     # cuda setting
     parser.add_argument('--cuda', type=bool, default=True, help="running on CPU or GPU")
     parser.add_argument('--gpus', type=str, default="0", help="default GPU devices (0,1)")
