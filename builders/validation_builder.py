@@ -29,11 +29,11 @@ def pad_label(img, target_size):
 # 滑动窗口法
 # image.shape(1,3,1024,2048)、tile_size=(512,512)、classes=3
 # image:需要预测的图片(1,3,3072,3328);tile_size:小方块大小;
-def predict_sliding(args, model, TestLoader, tile_size, criteria, mode='predict'):
-    total_batches = len(TestLoader)
+def predict_sliding(args, model, testLoader, tile_size, criteria, mode='predict'):
+    total_batches = len(testLoader)
     val_loss = 0
     metric = SegmentationMetric(args.classes)  # args.classes表示有args.classes个分类
-    pbar = tqdm(iterable=enumerate(TestLoader), total=total_batches, desc='Predicting')
+    pbar = tqdm(iterable=enumerate(testLoader), total=total_batches, desc='Predicting')
     for i, (input, gt, size, name) in pbar:
         image_size = input.shape  # (1,3,3328,3072)
         overlap = 1 / 3  # 每次滑动的覆盖率为1/3
@@ -105,7 +105,14 @@ def predict_sliding(args, model, TestLoader, tile_size, criteria, mode='predict'
     return val_loss, FWIoU, Miou, PerMiou_set
 
 
+# model output is feature map without Up sampling
 def predict_whole(model, image, tile_size):
+    """
+    model:  model
+    image:  test image
+    tile_size:  predict output image size
+    return:  predict output
+    """
     image = torch.from_numpy(image)
     interp = nn.Upsample(size=tile_size, mode='bilinear', align_corners=True)
     prediction = model(image.cuda())
@@ -115,15 +122,15 @@ def predict_whole(model, image, tile_size):
     return prediction
 
 
-def predict_multiscale(args, model, image, tile_size, scales, flip_evaluation):
+def predict_multiscale(model, image, tile_size, scales, classes, flip_evaluation):
     """
-    Predict an image by looking at it with different scales.
+        Predict an image by looking at it with different scales.
         We choose the "predict_whole_img" for the image with less than the original input size,
         for the input of larger size, we would choose the cropping method to ensure that GPU memory is enough.
     """
     image = image.data
     N_, C_, H_, W_ = image.shape
-    full_probs = np.zeros((H_, W_, args.classes))
+    full_probs = np.zeros((H_, W_, classes))
     for scale in scales:
         scale = float(scale)
         print("Predicting image scaled by %f" % scale)
