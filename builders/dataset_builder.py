@@ -1,10 +1,10 @@
 import os
 import pickle
 from torch.utils import data
-from dataset.cityscapes.cityscapes import CityscapesDataSet, CityscapesTrainInform, CityscapesValDataSet, CityscapesTestDataSet
-from dataset.camvid.camvid import CamVidDataSet, CamVidTrainInform
-from dataset.paris.paris import ParisDataSet, ParisTestDataSet, ParisTrainInform
-from dataset.road.road import RoadDataSet, RoadTrainInform, RoadTestDataSet
+from dataset.cityscapes.cityscapes import CityscapesTrainDataSet, CityscapesTrainInform, CityscapesValDataSet, CityscapesTestDataSet
+from dataset.camvid.camvid import CamVidTrainDataSet, CamVidTrainInform
+from dataset.paris.paris import ParisTrainDataSet, ParisTestDataSet, ParisTrainInform
+from dataset.road.road import RoadTrainDataSet, RoadTrainInform, RoadTestDataSet
 
 
 def build_dataset_train(dataset, input_size, batch_size, train_type, random_scale, random_mirror, num_workers):
@@ -42,7 +42,7 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
 
     if dataset == "cityscapes":
         trainLoader = data.DataLoader(
-            CityscapesDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
+            CityscapesTrainDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
                               mirror=random_mirror, mean=datas['mean']),
             batch_size=batch_size, shuffle=True, num_workers=num_workers,
             pin_memory=True, drop_last=True)
@@ -51,7 +51,7 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
 
     elif dataset == "camvid":
         trainLoader = data.DataLoader(
-            CamVidDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
+            CamVidTrainDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
                           mirror=random_mirror, mean=datas['mean']),
             batch_size=batch_size, shuffle=True, num_workers=num_workers,
             pin_memory=True, drop_last=True)
@@ -60,7 +60,7 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
 
     elif dataset == "paris":
         trainLoader = data.DataLoader(
-            ParisDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
+            ParisTrainDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
                           mirror=random_mirror, mean=datas['mean']),
             batch_size=batch_size, shuffle=True, num_workers=num_workers,
             pin_memory=True, drop_last=True)
@@ -69,7 +69,7 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
 
     elif dataset == "road":
         trainLoader = data.DataLoader(
-            RoadDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
+            RoadTrainDataSet(data_dir, train_data_list, crop_size=input_size, scale=random_scale,
                           mirror=random_mirror, mean=datas['mean']),
             batch_size=batch_size, shuffle=True, num_workers=num_workers,
             pin_memory=True, drop_last=True)

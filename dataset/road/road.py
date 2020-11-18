@@ -6,17 +6,12 @@ from torch.utils import data
 import pickle
 
 
-class RoadDataSet(data.Dataset):
+class RoadTrainDataSet(data.Dataset):
     """ 
-       RoadDataSet is employed to load train set
+       RoadTrainDataSet is employed to load train set
        Args:
         root: the Road dataset path,
-         Road
-          ├── gtFine
-          ├── leftImg8bit
         list_path: Road_train_list.txt, include partial path
-        mean: bgr_mean (73.15835921, 82.90891754, 72.39239876)
-
     """
 
     def __init__(self, root='', list_path='', max_iters=None, crop_size=(512, 1024), mean=(128, 128, 128), scale=True,
@@ -96,11 +91,10 @@ class RoadDataSet(data.Dataset):
 
 class RoadTestDataSet(data.Dataset):
     """ 
-       RoadDataSet is employed to load test set
+       RoadTestDataSet is employed to load test set
        Args:
         root: the Road dataset path,
         list_path: Road_test_list.txt, include partial path
-
     """
 
     def __init__(self, root='', list_path='', mean=(128, 128, 128), ignore_label=255):
@@ -119,7 +113,7 @@ class RoadTestDataSet(data.Dataset):
                 "label": label_file,
                 "name": image_name
             })
-        print("lenth of dataset: ", len(self.files))
+        print("lenth of test dataset: ", len(self.files))
 
     def __len__(self):
         return len(self.files)

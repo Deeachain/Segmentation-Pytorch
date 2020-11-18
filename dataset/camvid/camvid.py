@@ -12,13 +12,12 @@ resize images to 360x480 pixels for training and testing.
 """
 
 
-class CamVidDataSet(data.Dataset):
+class CamVidTrainDataSet(data.Dataset):
     """ 
-       CamVidDataSet is employed to load train set
+       CamVidTrainDataSet is employed to load train set
        Args:
         root: the CamVid dataset path, 
         list_path: camvid_train_list.txt, include partial path
-
     """
 
     def __init__(self, root='', list_path='', max_iters=None, crop_size=(512, 1024), mean=(128, 128, 128), scale=True,
@@ -102,7 +101,6 @@ class CamVidTestDataSet(data.Dataset):
        Args:
         root: the CamVid dataset path, 
         list_path: camvid_test_list.txt, include partial path
-
     """
 
     def __init__(self, root='', list_path='', mean=(128, 128, 128), ignore_label=255):
@@ -121,7 +119,7 @@ class CamVidTestDataSet(data.Dataset):
                 "label": label_file,
                 "name": image_name
             })
-        print("lenth of dataset: ", len(self.files))
+        print("lenth of test dataset: ", len(self.files))
 
     def __len__(self):
         return len(self.files)

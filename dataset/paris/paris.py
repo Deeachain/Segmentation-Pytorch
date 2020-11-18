@@ -6,9 +6,9 @@ from torch.utils import data
 import pickle
 
 
-class ParisDataSet(data.Dataset):
+class ParisTrainDataSet(data.Dataset):
     """ 
-       ParisDataSet is employed to load train set
+       ParisTrainDataSet is employed to load train set
        Args:
         root: the Paris dataset path,
         list_path: Paris_train_list.txt, include partial path
@@ -113,7 +113,7 @@ class ParisTestDataSet(data.Dataset):
                 "label": label_file,
                 "name": image_name
             })
-        print("lenth of dataset: ", len(self.files))
+        print("lenth of test dataset: ", len(self.files))
 
     def __len__(self):
         return len(self.files)

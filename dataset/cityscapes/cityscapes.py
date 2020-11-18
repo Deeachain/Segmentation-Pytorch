@@ -6,9 +6,9 @@ from torch.utils import data
 import pickle
 
 
-class CityscapesDataSet(data.Dataset):
+class CityscapesTrainDataSet(data.Dataset):
     """ 
-       CityscapesDataSet is employed to load train set
+       CityscapesTrainDataSet is employed to load train set
        Args:
         root: the Cityscapes dataset path, 
          cityscapes
