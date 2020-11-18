@@ -40,7 +40,7 @@ def draw_log(args, epoch, mIOU_val_list, lossVal_list):
         lossTr_list = []
         for index, line in enumerate(f.readlines()):
             lossTr_list.append(float(line.strip().split()[2]))
-            if (index + 1) / args.val_epochs == 0 or index == 0:
+            if ((index + 1) % args.val_epochs) == 0 or index == 0:
                 epoch_list.append(int(line.strip().split()[0]))
         ax1.plot(range(1, epoch + 1), lossTr_list, label='Train_loss')
         ax1.plot(epoch_list, lossVal_list, label='Val_loss')
