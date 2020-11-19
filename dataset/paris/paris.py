@@ -178,7 +178,7 @@ class ParisTrainInform:
         no_files = 0
         min_val_al = 0
         max_val_al = 0
-        with open(self.data_dir + '/' + fileName, 'r') as textFile:
+        with open(fileName, 'r') as textFile:
             for line in textFile:
                 # we expect the text file to contain the data in following format
                 # <RGB Image> <Label Image>
