@@ -16,6 +16,7 @@ def build_loss(args, datas, ignore_label):
     # 默认使用交叉商损失函数
     criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
     if args.loss == 'ProbOhemCrossEntropy2d':
+        h, w = args.input_size
         min_kept = int(args.batch_size // len(args.gpus) * h * w // 16)
         criteria = ProbOhemCrossEntropy2d(weight=weight, ignore_label=ignore_label, thresh=0.7, min_kept=min_kept)
     elif args.loss == 'CrossEntropyLoss2dLabelSmooth':

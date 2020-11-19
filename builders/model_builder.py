@@ -9,6 +9,7 @@ from model.PSPNet.pspnet import PSPNet
 # from model.PSPNet.psanet import PSANet
 from model.DeeplabV3Plus.DeeplabV3Plus import Deeplabv3plus
 from model.DeeplabV3Plus.config import cfg
+from model.DualGCNNet import DualSeg_res50
 
 
 
@@ -38,3 +39,7 @@ def build_model(model_name, num_classes):
     #                shrink_factor=shrink_factor, mask_h=mask_h, mask_w=mask_w, psa_softmax=True, pretrained=True)
     elif model_name == 'Deeplabv3plus':
         return Deeplabv3plus(cfg, num_classes=num_classes)
+
+    # gcn
+    elif model_name == 'DualSeg_res50':
+        return DualSeg_res50(num_classes=num_classes)

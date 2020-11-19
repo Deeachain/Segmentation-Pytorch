@@ -1,5 +1,6 @@
 import os
 import pickle
+import pandas as pd
 from torch.utils import data
 from dataset.cityscapes.cityscapes import CityscapesTrainDataSet, CityscapesTrainInform, CityscapesValDataSet, CityscapesTestDataSet
 from dataset.camvid.camvid import CamVidTrainDataSet, CamVidTrainInform
@@ -10,7 +11,6 @@ from dataset.road.road import RoadTrainDataSet, RoadTrainInform, RoadTestDataSet
 def build_dataset_train(dataset, input_size, batch_size, train_type, random_scale, random_mirror, num_workers):
     data_dir = os.path.join('/media/ding/Data/datasets', dataset)
     train_data_list = os.path.join(data_dir, dataset + '_' + train_type + '_list.txt')
-    val_data_list = os.path.join(data_dir, dataset + '_val' + '_list.txt')
     inform_data_file = os.path.join('./dataset/inform/', dataset + '_inform.pkl')
 
     # inform_data_file collect the information of mean, std and weigth_class
@@ -110,7 +110,6 @@ def build_dataset_test(dataset, num_workers, sliding=True, none_gt=False):
             print("error while pickling data. Please check.")
             exit(-1)
     else:
-        print("find file: ", str(inform_data_file))
         datas = pickle.load(open(inform_data_file, "rb"))
 
     if dataset == "cityscapes":
@@ -130,21 +129,27 @@ def build_dataset_test(dataset, num_workers, sliding=True, none_gt=False):
 
     elif dataset == "camvid":
         testLoader = data.DataLoader(
-            CamVidDataSet(data_dir, test_data_list, mean=datas['mean']),
+            CamVidTrainDataSet(data_dir, test_data_list, mean=datas['mean']),
             batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=True)
 
-        return testLoader
+        class_dict_df = pd.read_csv(os.path.join('./dataset', dataset, 'class_map.csv'))
+
+        return testLoader, class_dict_df
 
     elif dataset == "paris":
         testLoader = data.DataLoader(
             ParisTestDataSet(data_dir, test_data_list, mean=datas['mean']),
             batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=True)
 
-        return testLoader
+        class_dict_df = pd.read_csv(os.path.join('./dataset', dataset, 'class_map.csv'))
+
+        return testLoader, class_dict_df
 
     elif dataset == "road":
         testLoader = data.DataLoader(
             RoadTestDataSet(data_dir, test_data_list, mean=datas['mean']),
             batch_size=1, shuffle=False, num_workers=num_workers, pin_memory=True)
 
-        return testLoader
+        class_dict_df = pd.read_csv(os.path.join('./dataset', dataset, 'class_map.csv'))
+
+        return testLoader, class_dict_df

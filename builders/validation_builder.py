@@ -96,7 +96,6 @@ def predict_sliding(args, model, testLoader, tile_size, criteria, mode='predict'
     Miou, PerMiou_set = metric.meanIntersectionOverUnion()
     FWIoU = metric.Frequency_Weighted_Intersection_over_Union()
 
-    print('miou {}\nclass iou {}'.format(Miou, PerMiou_set))
     result = args.save_seg_dir + '/results.txt'
     with open(result, 'w') as f:
         f.write(str(Miou))
