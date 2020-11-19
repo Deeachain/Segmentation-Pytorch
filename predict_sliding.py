@@ -31,7 +31,7 @@ def main(args):
         os.makedirs(args.save_seg_dir)
 
     # load the test set
-    testLoader = build_dataset_test(args.dataset, args.num_workers, sliding=True, none_gt=True)
+    testLoader, class_dict_df = build_dataset_test(args.dataset, args.num_workers, sliding=True, none_gt=True)
 
     if args.checkpoint:
         if os.path.isfile(args.checkpoint):
@@ -47,8 +47,14 @@ def main(args):
     criteria = build_loss(args, None, 255)
 
     print(">>>>>>>>>>>beginning testing>>>>>>>>>>>")
-    predict_sliding(args, model.eval(), testLoader=testLoader, tile_size=(args.tile_size, args.tile_size),
-                    criteria=criteria, mode='validation')
+    val_loss, FWIoU, mIOU_val, per_class_iu = predict_sliding(args, model.eval(), testLoader=testLoader,
+                                                              tile_size=(args.tile_size, args.tile_size),
+                                                              criteria=criteria, mode='validation')
+
+    t = PrettyTable(['label_index', 'class_name', 'class_iou'])
+    for index in range(class_dict_df.shape[0]):
+        t.add_row([class_dict_df['label_index'][index], class_dict_df['class_name'][index], PerMiou_set[index]])
+    print(t.get_string(title="Miou is {}".format(mIOU_val)))
 
 
 if __name__ == '__main__':
@@ -67,7 +73,7 @@ if __name__ == '__main__':
                         help="saving path of prediction result")
     parser.add_argument('--loss', type=str, default="CrossEntropyLoss2d",
                         choices=['CrossEntropyLoss2d', 'ProbOhemCrossEntropy2d', 'CrossEntropyLoss2dLabelSmooth',
-                                 'LovaszSoftmax', 'FocalLoss2d'], help = "choice loss for train or val in list")
+                                 'LovaszSoftmax', 'FocalLoss2d'], help="choice loss for train or val in list")
     parser.add_argument('--cuda', default=True, help="run on CPU or GPU")
     parser.add_argument("--gpus", default="0", type=str, help="gpu ids (default: 0)")
     args = parser.parse_args()
