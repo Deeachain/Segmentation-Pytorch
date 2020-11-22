@@ -32,6 +32,7 @@ cityscapes 19 class iou
 后期会更新我的数据集-----
 # 4. 模型搭建
 所有的模型搭建都是在builders/model_builder.py文件下导入<br>
+- [x] FCN
 - [x] UNet
 - [x] ENet
 - [x] ESPNet
@@ -41,7 +42,6 @@ cityscapes 19 class iou
 - [x] BiSeNetV2
 - [x] PSPNet
 - [x] DeeplabV3Plus
-- [ ] FCN
 # 5. 训练
 ## 5.1 数据集准备
 cityscapes的训练：gtFine中的文件需要是onehot之后的图片，总共19个类别（图片中的像素是0-18&255）。<br>
