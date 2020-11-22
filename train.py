@@ -101,8 +101,8 @@ def main(args):
             filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.9, 0.999), eps=1e-08,
             weight_decay=1e-4)
 
-    # learning scheduling, for 5 epoch lr*0.6
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.6)
+    # learning scheduling, for 30 epoch lr*0.8
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.8)
 
     # move model and criteria on cuda
     if args.cuda:
@@ -214,7 +214,6 @@ def parse_args():
     parser.add_argument('--model', type=str, default="DualSeg_res50", help="model name: (default ENet)")
     parser.add_argument('--dataset', type=str, default="paris", help="dataset: cityscapes or camvid")
     parser.add_argument('--input_size', type=str, default=(256, 256), help="input size of model")
-    parser.add_argument('--tile_size', type=str, default=(256, 256), help="tile size for sliding predict")
     parser.add_argument('--num_workers', type=int, default=4, help=" the number of parallel threads")
     parser.add_argument('--train_type', type=str, default="train",
                         help="ontrain for training on train set, ontrainval for training on train+val set")
@@ -235,7 +234,7 @@ def parse_args():
     parser.add_argument('--poly_exp', type=float, default=0.9, help='polynomial LR exponent')
     parser.add_argument('--warmup_iters', type=int, default=500, help='warmup iterations')
     parser.add_argument('--warmup_factor', type=float, default=0.3, help='warm up start lr=warmup_factor*lr')
-    parser.add_argument('--loss', type=str, default="CrossEntropyLoss2d",
+    parser.add_argument('--loss', type=str, default="ProbOhemCrossEntropy2d",
                         choices=['CrossEntropyLoss2d', 'ProbOhemCrossEntropy2d', 'CrossEntropyLoss2dLabelSmooth',
                                  'LovaszSoftmax', 'FocalLoss2d'], help="choice loss for train or val in list")
     # cuda setting

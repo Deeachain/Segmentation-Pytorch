@@ -1,9 +1,9 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2020/11/22 下午3:25
+Time:     2020/11/22 下午7:06
 Author:   Cheng Ding(Deeachain)
 Version:  V 0.1
-File:     UNet.py
+File:     FCN.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
 Github:   https://github.com/Deeachain
 """
@@ -15,11 +15,11 @@ from torchsummary import summary
 
 
 ######################################################################################
-#U-Net: Convolutional Networks for BiomedicalImage Segmentation
-#Paper-Link: https://arxiv.org/pdf/1505.04597.pdf
+#FCN: Fully Convolutional Networks for Semantic Segmentation
+#Paper-Link: https://arxiv.org/abs/1411.4038
 ######################################################################################
 
-__all__ = ["UNet"]
+__all__ = ["FCN"]
 
 
 def conv1x1(in_planes, out_planes, stride=1):
@@ -62,59 +62,65 @@ class conv3x3_block_x2(nn.Module):
         return x
 
 
-class upsample(nn.Module):
+class conv3x3_block_x3(nn.Module):
+    '''(conv => BN => ReLU) * 3'''
+
     def __init__(self, in_ch, out_ch):
+        super(conv3x3_block_x3, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_ch, out_ch, 3, padding=1),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+
+class upsample(nn.Module):
+    def __init__(self, in_ch, out_ch, scale_factor=2):
         super(upsample, self).__init__()
         self.conv1x1 = conv1x1(in_ch, out_ch)
         self.conv = conv3x3_block_x2(in_ch, out_ch)
+        self.scale_factor = scale_factor
 
     def forward(self, H, L):
         """
         H: High level feature map, upsample
         L: Low level feature map, block output
         """
-        H = F.interpolate(H, scale_factor=2, mode='bilinear', align_corners=False)
+        H = F.interpolate(H, scale_factor=self.scale_factor, mode='bilinear', align_corners=False)
         H = self.conv1x1(H)
         x = torch.cat([H, L], dim=1)
         x = self.conv(x)
         return x
 
 
-class UNet(nn.Module):
-    def __init__(self, num_classes):
-        super(UNet, self).__init__()
+class FCN(nn.Module):
+    def __init__(self):
+        surper(FCN, self).__init__()
         self.maxpool = nn.MaxPool2d(2)
         self.block1 = conv3x3_block_x2(3, 64)
         self.block2 = conv3x3_block_x2(64, 128)
-        self.block3 = conv3x3_block_x2(128, 256)
-        self.block4 = conv3x3_block_x2(256, 512)
-        self.block_out = conv3x3_block_x1(512, 1024)
-        self.upsample1 = upsample(1024, 512)
-        self.upsample2 = upsample(512, 256)
-        self.upsample3 = upsample(256, 128)
-        self.upsample4 = upsample(128, 64)
-        self.upsample_out = conv3x3_block_x2(64, num_classes)
+        self.block3 = conv3x3_block_x3(128, 256)
+        self.block4 = conv3x3_block_x3(256, 512)
+        self.block5 = conv3x3_block_x3(512, 512)
 
     def forward(self, x):
-        block1_x = self.block1(x)
-        x = self.maxpool(block1_x)
-        block2_x = self.block2(x)
-        x = self.maxpool(block2_x)
-        block3_x = self.block3(x)
-        x = self.maxpool(block3_x)
-        block4_x = self.block4(x)
-        x = self.maxpool(block4_x)
-        x = self.block_out(x)
-        x = self.upsample1(x, block4_x)
-        x = self.upsample2(x, block3_x)
-        x = self.upsample3(x, block2_x)
-        x = self.upsample4(x, block1_x)
-        x = self.upsample_out(x)
-
-        return x
-
-
-"""print layers and params of network"""
-if __name__ == '__main__':
-    model = UNet(num_classes=3)
-    summary(model, (3, 512, 512), device="cpu")
+        x = self.block1(x)
+        block1_x = self.maxpool(x)
+        x = self.block2(block1_x)
+        block2_x = self.maxpool(x)
+        x = self.block3(block2_x)
+        block3_x = self.maxpool(x)
+        x = self.block4(block3_x)
+        block4_x = self.maxpool(x)
+        x = self.block5(block4_x)
+        block5_x = self.maxpool(x)
