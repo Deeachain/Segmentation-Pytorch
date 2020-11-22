@@ -1,7 +1,7 @@
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchsummary import summary
 
 
 class ConvBNReLU(nn.Module):
@@ -262,12 +262,12 @@ class BGALayer(nn.Module):
 
 class SegmentHead(nn.Module):
 
-    def __init__(self, in_chan, mid_chan, n_classes):
+    def __init__(self, in_chan, mid_chan, num_classes):
         super(SegmentHead, self).__init__()
         self.conv = ConvBNReLU(in_chan, mid_chan, 3, stride=1)
         self.drop = nn.Dropout(0.1)
         self.conv_out = nn.Conv2d(
-                mid_chan, n_classes, kernel_size=1, stride=1,
+                mid_chan, num_classes, kernel_size=1, stride=1,
                 padding=0, bias=True)
 
     def forward(self, x, size=None):
@@ -282,18 +282,18 @@ class SegmentHead(nn.Module):
 
 class BiSeNetV2(nn.Module):
 
-    def __init__(self, n_classes):
+    def __init__(self, num_classes):
         super(BiSeNetV2, self).__init__()
         self.detail = DetailBranch()
         self.segment = SegmentBranch()
         self.bga = BGALayer()
 
         ## TODO: what is the number of mid chan ?
-        self.head = SegmentHead(128, 1024, n_classes)
-        self.aux2 = SegmentHead(16, 128, n_classes)
-        self.aux3 = SegmentHead(32, 128, n_classes)
-        self.aux4 = SegmentHead(64, 128, n_classes)
-        self.aux5_4 = SegmentHead(128, 128, n_classes)
+        self.head = SegmentHead(128, 1024, num_classes)
+        self.aux2 = SegmentHead(16, 128, num_classes)
+        self.aux3 = SegmentHead(32, 128, num_classes)
+        self.aux4 = SegmentHead(64, 128, num_classes)
+        self.aux5_4 = SegmentHead(128, 128, num_classes)
 
         self.init_weights()
 
@@ -323,53 +323,7 @@ class BiSeNetV2(nn.Module):
                 nn.init.zeros_(module.bias)
 
 
-if __name__ == "__main__":
-    #  x = torch.randn(16, 3, 1024, 2048)
-    #  detail = DetailBranch()
-    #  feat = detail(x)
-    #  print('detail', feat.size())
-    #
-    #  x = torch.randn(16, 3, 1024, 2048)
-    #  stem = StemBlock()
-    #  feat = stem(x)
-    #  print('stem', feat.size())
-    #
-    #  x = torch.randn(16, 128, 16, 32)
-    #  ceb = CEBlock()
-    #  feat = ceb(x)
-    #  print(feat.size())
-    #
-    #  x = torch.randn(16, 32, 16, 32)
-    #  ge1 = GELayerS1(32, 32)
-    #  feat = ge1(x)
-    #  print(feat.size())
-    #
-    #  x = torch.randn(16, 16, 16, 32)
-    #  ge2 = GELayerS2(16, 32)
-    #  feat = ge2(x)
-    #  print(feat.size())
-    #
-    #  left = torch.randn(16, 128, 64, 128)
-    #  right = torch.randn(16, 128, 16, 32)
-    #  bga = BGALayer()
-    #  feat = bga(left, right)
-    #  print(feat.size())
-    #
-    #  x = torch.randn(16, 128, 64, 128)
-    #  head = SegmentHead(128, 128, 19)
-    #  logits = head(x)
-    #  print(logits.size())
-    #
-    #  x = torch.randn(16, 3, 1024, 2048)
-    #  segment = SegmentBranch()
-    #  feat = segment(x)[0]
-    #  print(feat.size())
-    #
-    x = torch.randn(16, 3, 512, 1024)
-    model = BiSeNetV2(n_classes=19)
-    logits = model(x)[0]
-    print(logits.size())
-
-    for name, param in model.named_parameters():
-        if len(param.size()) == 1:
-            print(name)
+"""print layers and params of network"""
+if __name__ == '__main__':
+    model = BiSeNetV2(num_classes=3)
+    summary(model, (3, 512, 512), device="cpu")
