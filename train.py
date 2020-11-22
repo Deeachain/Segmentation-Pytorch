@@ -90,7 +90,7 @@ def main(args):
     print('mean and std: ', datas['mean'], datas['std'])
 
     # define loss function, respectively
-    criteria = build_loss(args, None, ignore_label)
+    criteria = build_loss(args, datas, ignore_label)
 
     # define optimization strategy
     if args.optim == 'sgd':
@@ -101,8 +101,8 @@ def main(args):
             filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, betas=(0.9, 0.999), eps=1e-08,
             weight_decay=1e-4)
 
-    # learning scheduling, for 30 epoch lr*0.8
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.8)
+    # learning scheduling, for 20 epoch lr*0.9
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.9)
 
     # move model and criteria on cuda
     if args.cuda:
@@ -211,7 +211,7 @@ def main(args):
 def parse_args():
     parser = ArgumentParser(description='Efficient semantic segmentation')
     # model and dataset
-    parser.add_argument('--model', type=str, default="DualSeg_res50", help="model name: (default ENet)")
+    parser.add_argument('--model', type=str, default="DualSeg_res50", help="model name")
     parser.add_argument('--dataset', type=str, default="paris", help="dataset: cityscapes or camvid")
     parser.add_argument('--input_size', type=str, default=(256, 256), help="input size of model")
     parser.add_argument('--num_workers', type=int, default=4, help=" the number of parallel threads")
@@ -220,21 +220,15 @@ def parse_args():
     # training hyper params
     parser.add_argument('--max_epochs', type=int, default=300,
                         help="the number of epochs: 300 for train set, 350 for train+val set")
+    parser.add_argument('--batch_size', type=int, default=4, help="the batch size is set to 16 for 2 GPUs")
     parser.add_argument('--val_epochs', type=int, default=10,
                         help="the number of epochs: 100 for val set")
     parser.add_argument('--random_mirror', type=bool, default=True, help="input image random mirror")
     parser.add_argument('--random_scale', type=bool, default=True, help="input image resize 0.5 to 2")
     parser.add_argument('--lr', type=float, default=1e-3, help="initial learning rate")
-    parser.add_argument('--batch_size', type=int, default=4, help="the batch size is set to 16 for 2 GPUs")
-    parser.add_argument('--optim', type=str.lower, default='adam', choices=['sgd', 'adam', 'radam', 'ranger'],
-                        help="select optimizer")
+    parser.add_argument('--optim', type=str.lower, default='adam', choices=['sgd', 'adam'], help="select optimizer")
     parser.add_argument('--sliding', type=bool, default=True, help="sliding predict mode")
-    parser.add_argument('--lr_schedule', type=str, default='poly', help='name of lr schedule: poly')
-    parser.add_argument('--num_cycles', type=int, default=1, help='Cosine Annealing Cyclic LR')
-    parser.add_argument('--poly_exp', type=float, default=0.9, help='polynomial LR exponent')
-    parser.add_argument('--warmup_iters', type=int, default=500, help='warmup iterations')
-    parser.add_argument('--warmup_factor', type=float, default=0.3, help='warm up start lr=warmup_factor*lr')
-    parser.add_argument('--loss', type=str, default="ProbOhemCrossEntropy2d",
+    parser.add_argument('--loss', type=str, default="CrossEntropyLoss2d",
                         choices=['CrossEntropyLoss2d', 'ProbOhemCrossEntropy2d', 'CrossEntropyLoss2dLabelSmooth',
                                  'LovaszSoftmax', 'FocalLoss2d'], help="choice loss for train or val in list")
     # cuda setting
