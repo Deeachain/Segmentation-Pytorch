@@ -25,14 +25,14 @@ model_urls = {
 
 
 def build_model(model_name, num_classes, backbone='resnet18', pretrained=False, out_stride=32, mult_grid=False):
-    if model_name == 'UNet':
-        model = UNet(num_classes=num_classes)
-    elif model_name == 'FCN':
+    if model_name == 'FCN':
         model = FCN(num_classes=num_classes)
     elif model_name == 'FCN_ResNet':
         model = FCN_ResNet(num_classes=num_classes, backbone=backbone, out_stride=out_stride, mult_grid=mult_grid)
     elif model_name == 'SegNet':
         model = SegNet(classes=num_classes)
+    elif model_name == 'UNet':
+        model = UNet(num_classes=num_classes)
     elif model_name == 'BiSeNet':
         model = BiSeNet(num_classes=num_classes, backbone=backbone)
     elif model_name == 'BiSeNetV2':
