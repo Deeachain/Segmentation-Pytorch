@@ -49,8 +49,6 @@ def build_model(model_name, num_classes, backbone='resnet18', pretrained=False, 
     elif model_name == 'PSPNet_res101':
         model = PSPNet(layers=101, bins=(1, 2, 3, 6), dropout=0.1, num_classes=num_classes, zoom_factor=8, use_ppm=True,
                        pretrained=True)
-    elif model_name == 'HRNet':
-        model = HighResolutionNet(num_classes=num_classes)
     # elif model_name == 'PSANet50':
     #     return PSANet(layers=50, dropout=0.1, classes=num_classes, zoom_factor=8, use_psa=True, psa_type=2, compact=compact,
     #                shrink_factor=shrink_factor, mask_h=mask_h, mask_w=mask_w, psa_softmax=True, pretrained=True)
