@@ -1,0 +1,17 @@
+cycler==0.10.0
+kiwisolver==1.1.0
+matplotlib==3.1.1
+Pillow>=6.2.2
+pyparsing==2.4.2
+python-dateutil==2.8.1
+pytz==2018.4
+six==1.12.0
+#torch==1.1.0
+#torchvision==0.2.0
+torchsummary==1.5.1
+opencv-python==4.1.0.25
+tqdm==4.52.0
+numpy==1.15.1
+pandas==0.25.0
+scipy==1.5.1
+prettytable

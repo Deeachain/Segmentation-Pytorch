@@ -1,0 +1,7 @@
+label_index,class_name,rgb,gray
+0,Impervious_surfaces,255 255 255,255
+1,Building,255 0 0,76
+2,Low_vegetation,255 255 0,226
+3,Tree,0 255 0,150
+4,Car,0 255 255,179
+5,Clutter_background,0 0 255,29

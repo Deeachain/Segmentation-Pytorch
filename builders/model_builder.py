@@ -1,0 +1,103 @@
+import torch.nn as nn
+import torch.utils.model_zoo as model_zoo
+from collections import OrderedDict
+from model.UNet import UNet
+from model.SegNet import SegNet
+from model.FCN8s import FCN
+from model.ENet import ENet
+from model.ESPNet_v2.SegmentationModel import EESPNet_Seg
+from model.DABNet import DABNet
+from model.BiSeNet import BiSeNet
+from model.BiSeNetV2 import BiSeNetV2
+from model.PSPNet.pspnet import PSPNet
+# from model.PSPNet.psanet import PSANet
+from model.DualGCNNet import DualSeg_res50, DualSeg_res101
+from model.FCN_ResNet import FCN_ResNet
+from model.NFSNet import NFSNet
+from model.HRNet import HighResolutionNet
+from model.DeeplabV3Plus import DeepLabv3_plus
+from model.Transformer1 import SegTrans
+from model.DDRNet import DDRNet
+from model.QYNet import QYNet
+from model.HRNet import HighResolutionNet
+
+
+model_urls = {
+    'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
+    'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
+    'resnet50': 'https://download.pytorch.org/models/resnet50-19c8e357.pth',
+    'resnet101': 'https://download.pytorch.org/models/resnet101-5d3b4d8f.pth',
+    'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
+}
+
+
+def build_model(model_name, num_classes, backbone='resnet18', pretrained=False, out_stride=32, mult_grid=False):
+    # default model is BiSeNet
+    model = UNet(num_classes=num_classes)
+
+    # small model
+    if model_name == 'ENet':
+        model = ENet(num_classes=num_classes)
+    elif model_name == 'BiSeNet':
+        model = BiSeNet(num_classes=num_classes, backbone=backbone)
+    elif model_name == 'BiSeNetV2':
+        model = BiSeNetV2(num_classes=num_classes)
+    elif model_name == 'FCN_ResNet':
+        model = FCN_ResNet(num_classes=num_classes, backbone=backbone, out_stride=out_stride, mult_grid=mult_grid)
+    elif model_name == 'NFSNet':
+        model = NFSNet(num_classes=num_classes, backbone=backbone)
+    elif model_name == 'HRNet':
+        model = HighResolutionNet(num_classes=num_classes)
+    elif model_name == 'Deeplabv3plus_res101':
+        model = DeepLabv3_plus(nInputChannels=3, n_classes=num_classes, os=out_stride, pretrained=True)
+    elif model_name == "SegTrans":
+        model = SegTrans(num_classes=num_classes, backbone=backbone, out_stride=out_stride, mult_grid=mult_grid)
+    elif model_name == "DDRNet":
+        model = DDRNet(pretrained=True, num_classes=num_classes)
+    elif model_name == 'FCN_ResNet1024':
+        model = FCN_ResNet(num_classes=num_classes, backbone=backbone, out_stride=out_stride, mult_grid=mult_grid)
+    elif model_name == 'FCN_ResNet769':
+        model = FCN_ResNet(num_classes=num_classes, backbone=backbone, out_stride=out_stride, mult_grid=mult_grid)
+    elif model_name == 'FCN_ResNet513':
+        model = FCN_ResNet(num_classes=num_classes, backbone=backbone, out_stride=out_stride, mult_grid=mult_grid)
+    elif model_name == 'QYNet':
+        model = QYNet(num_class=num_classes)
+
+    # large model
+    elif model_name == 'FCN':
+        model = FCN(num_classes=num_classes)
+    elif model_name == 'SegNet':
+        model = SegNet(classes=num_classes)
+    elif model_name == 'PSPNet_res50':
+        model = PSPNet(layers=50, bins=(1, 2, 3, 6), dropout=0.1, num_classes=num_classes, zoom_factor=8, use_ppm=True,
+                      pretrained=True)
+    elif model_name == 'PSPNet_res101':
+        model = PSPNet(layers=101, bins=(1, 2, 3, 6), dropout=0.1, num_classes=num_classes, zoom_factor=8, use_ppm=True,
+                      pretrained=True)
+    elif model_name == 'HRNet':
+        model = HighResolutionNet(num_classes=num_classes)
+    # elif model_name == 'PSANet50':
+    #     return PSANet(layers=50, dropout=0.1, classes=num_classes, zoom_factor=8, use_psa=True, psa_type=2, compact=compact,
+    #                shrink_factor=shrink_factor, mask_h=mask_h, mask_w=mask_w, psa_softmax=True, pretrained=True)
+
+
+    # gcn model
+    elif model_name == 'DualSeg_res50':
+        model = DualSeg_res50(num_classes=num_classes)
+    elif model_name == 'DualSeg_res101':
+        model = DualSeg_res101(num_classes=num_classes)
+
+    if pretrained:
+        checkpoint = model_zoo.load_url(model_urls[backbone])
+        # print(checkpoint['layer3.15.conv3.weight'], checkpoint['layer3.15.bn1.weight'])
+        model_dict = model.state_dict()
+        # print(model_dict)
+        # 筛除不加载的层结构
+        pretrained_dict = {'backbone.'+ k: v for k, v in checkpoint.items() if 'backbone.'+ k in model_dict}
+        # 更新当前网络的结构字典
+        model_dict.update(pretrained_dict)
+        model.load_state_dict(model_dict)
+    
+    return model
+
+
