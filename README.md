@@ -1,4 +1,8 @@
-## 项目结构调整，已经删除之前代码，调整结束会重新上传代码
+## 项目更新日志
+
+- 2020.12.10 项目结构调整，已经删除之前代码，调整结束会重新上传代码
+- 2021.04.09 重新上传代码，"V1 commit"
+
 # 1. 效果展示
 - DDRNet Miou=72.79%
 ```
@@ -46,19 +50,17 @@
 - python==3.6.5<br>
 具体参数见requirement.txt<br>
 # 3. 数据预处理
-本实验可以实现cityscapes和camvid公开数据集<br>
-训练演示使用的是cityscapes<br>
-本人主要是用作遥感卫星图像分割,卫星图像尺寸都较大,所以需要进行切图,切分成512*512尺寸大小的图片<br>
-后期会更新我的数据集-----
+本项目可以实现cityscapes公开数据集<br>
+后期会上传数据集-----
 # 4. 模型搭建
 所有的模型搭建都是在builders/model_builder.py文件下导入<br>
 - [x] FCN
+- [x] FCN_ResNet
+- [x] SegNet
 - [x] UNet
-- [x] ENet
-- [x] ESPNet
-- [x] ESPNet_v2
-- [x] ERFNet
-- [x] DABNet
+- [x] BiSeNet
 - [x] BiSeNetV2
 - [x] PSPNet
-- [x] DeeplabV3Plus
+- [x] DeepLabv3_plus
+- [x] HRNet
+- [x] DDRNet
