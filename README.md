@@ -51,17 +51,17 @@
 此处展示Cityscapes数据集准备:
 
 ## 4.1 首先下载数据集
-根据官网链接下载数据集, `leftImg8bit`原图后缀`*leftImg8bit.png`, `gtFine`精细标注图片后缀：`a) *color.png`、`b) *labelIds.png`、`c) *instanceIds.png`
+根据官网链接下载数据集, `leftImg8bit`文件夹下原图后缀`*leftImg8bit.png`, `gtFine`文件夹下精细标注图片后缀: 
+`a) *color.png`、`b) *labelIds.png`、`c) *instanceIds.png`
 ```
 *leftImg8bit.png          : the origin picture
-```
-```
 a) *color.png             : the class is encoded by its color
 b) *labelIds.png          : the class is encoded by its ID
 c) *instanceIds.png       : the class and the instance are encoded by an instance ID
 ```
+
 语义分割任务真实用到的标签灰度图onehot编码是0-18, 因此需要对标签进行编码. 使用编码脚本`dataset/cityscapes/cityscapes_scripts/process_cityscapes.py`
-对图片进行处理, 得到*labelTrainIds.png. `process_cityscapes.py`使用方法:修改486行`cityscapes_path`为自己的数据存放路径.
+对图片进行处理, 得到`*labelTrainIds.png`. `process_cityscapes.py`使用方法:修改486行`cityscapes_path`为自己的数据存放路径.
 
 - 原图、彩色标签图和灰度标签图(0-18)对比
 <table>
