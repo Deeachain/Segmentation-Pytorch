@@ -51,12 +51,17 @@
 此处展示Cityscapes数据集准备:
 
 ## 4.1 首先下载数据集
-原始数据集的标签灰度图onehot编码是0-32, 语义分割任务真实用到的标签灰度图onehot编码是0-18,因此需要对标签进行编码。
+根据官网链接下载数据集, `leftImg8bit`原图后缀`*leftImg8bit.png`, `gtFine`精细标注图片后缀：`a) *color.png`、`b) *labelIds.png`、`c) *instanceIds.png`
 ```
-原图：aachen_000000_000019_leftImg8bit
-彩色标签：aachen_000000_000019_gtFine_color
-灰度标签(0-18)：aachen_000000_000019_gtFine_labelTrainIds
+*leftImg8bit.png          : the origin picture
 ```
+```
+a) *color.png             : the class is encoded by its color
+b) *labelIds.png          : the class is encoded by its ID
+c) *instanceIds.png       : the class and the instance are encoded by an instance ID
+```
+语义分割任务真实用到的标签灰度图onehot编码是0-18, 因此需要对标签进行编码. 使用编码脚本`dataset/cityscapes/cityscapes_scripts/process_cityscapes.py`
+对图片进行处理, 得到*labelTrainIds.png. `process_cityscapes.py`使用方法:修改486行`cityscapes_path`为自己的数据存放路径.
 
 - 原图、彩色标签图和灰度标签图(0-18)对比
 <table>
@@ -91,8 +96,8 @@ data
 ```
 
 - 生成图片路径txt<br>
-根据`dataset/generate_txt.py`脚本, 生成包含原图和标签的路径`txt`文件<br>
-总共生成3个`txt`文件:`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`,并且将三个文件复制到数据集根目录下<br>
+根据`dataset/generate_txt.py`脚本, 生成包含原图和标签的路径`txt`文件. 总共生成3个`txt`文件:
+`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`,并且将三个文件复制到数据集根目录下<br>
 ```
 data
   |--open_data
