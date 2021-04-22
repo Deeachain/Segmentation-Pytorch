@@ -1,5 +1,4 @@
 ## 项目更新日志
-
 - 2020.12.10 项目结构调整，已经删除之前代码，调整结束会重新上传代码
 - 2021.04.09 重新上传代码，"V1 commit"
 - 2021.04.22 更新torch distributed training
@@ -34,8 +33,8 @@
 |      18     |    bicycle    | 0.7221 |   0.8675  | 0.8117 | 0.8387 |
 +-------------+---------------+--------+-----------+--------+--------+
 ```
-- 原图和预测图对比
 
+- 原图和预测图对比
 <table>
     <tr>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit.png"><div align = "center">origin</div></td>
@@ -44,13 +43,13 @@
     </tr>
 </table>
 
-
 # 2. 环境安装
 ```pip install -r requirements.txt```<br>
 实验环境： 
-- Ubuntu 16.04 GTX2080TI 单卡 或 多卡
+- Ubuntu 16.04 Nvidia-Cards >= 1
 - python==3.6.5<br>
-具体依赖安装包见requirement.txt<br>
+- 具体依赖安装包见requirement.txt<br>
+
 # 3. 模型搭建
 所有的模型搭建都是在builders/model_builder.py文件下导入<br>
 - [x] FCN
@@ -65,9 +64,10 @@
 - [x] DDRNet
 
 # 4. 数据预处理
-本项目可以实现公开数据集cityscapes、ISPRS<br>
+本项目可以实现公开数据集Cityscapes、ISPRS<br>
 后期会上传数据集-----<br>
-此处展示cityscapes数据集准备：
+此处展示Cityscapes数据集准备：
+
 ## 4.1 首先下载数据集
 原始数据集的标签灰度图onehot编码是0-32,语义分割任务真实用到的标签灰度图onehot编码是0-18,因此需要对标签进行编码。
 ```
@@ -75,6 +75,7 @@
 彩色标签：aachen_000000_000019_gtFine_color
 灰度标签(0-18)：aachen_000000_000019_gtFine_labelTrainIds
 ```
+
 - 原图、彩色标签图和灰度标签图对比
 <table>
     <tr>
@@ -146,6 +147,7 @@ leftImg8bit/train/cologne/cologne_000001_000019_leftImg8bit.png gtFine/train/col
 ```
 原图路径+分隔符'\t'+标签路径+'\n'
 ```
+
 
 # TODO.....
 # 5. 如何训练
