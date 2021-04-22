@@ -76,7 +76,7 @@
 灰度标签(0-18)：aachen_000000_000019_gtFine_labelTrainIds
 ```
 
-- 原图、彩色标签图和灰度标签图对比
+- 原图、彩色标签图和灰度标签图(0-18)对比
 <table>
     <tr>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/aachen_000000_000019_leftImg8bit.png"><div align = "center">***_leftImg8bit</div></td>
@@ -153,6 +153,14 @@ leftImg8bit/train/cologne/cologne_000001_000019_leftImg8bit.png gtFine/train/col
 # 5. 如何训练
 ```
 sh train.sh
+```
+## 5.1 参数详解
+```
+python -m torch.distributed.launch --nproc_per_node=2 \
+                train.py --model PSPNet_res50 --out_stride 8 \
+                --max_epochs 200 --val_epochs 20 --batch_size 4 --lr 0.01 --optim sgd --loss ProbOhemCrossEntropy2d \
+                --base_size 768 --crop_size 768  --tile_hw_size 768,768 \
+                --root '/data/open_data' --dataset cityscapes --gpus_id 1,2
 ```
 # 6. 如何验证
 ```
