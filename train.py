@@ -114,11 +114,10 @@ def main(args):
     criterion = build_loss(args, None, ignore_label)
 
     # load train set and data augmentation
-    datas, traindataset = build_dataset_train(args.root, args.dataset, args.base_size, args.crop_size,
-                                              args.batch_size, args.random_scale, args.num_workers)
+    datas, traindataset = build_dataset_train(args.root, args.dataset, args.base_size, args.crop_size)
     # load the test set, if want set cityscapes test dataset change none_gt=False
-    testdataset, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size, args.batch_size // 2,
-                                                    args.num_workers, mode=args.predict_mode, gt=True)
+    testdataset, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size,
+                                                    mode=args.predict_mode, gt=True)
 
     # move model and criterion on cuda
     if args.cuda:
