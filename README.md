@@ -6,33 +6,14 @@
 
 # 1. 效果展示（cityscapes）
 - 使用模型 DDRNet Miou=72.79%
-```
-+--------------------------------------------------------------------+
-|                         Validation results                         |
-+-------------+---------------+--------+-----------+--------+--------+
-| label_index |   label_name  |  IoU   | Precision | Recall |   F1   |
-+-------------+---------------+--------+-----------+--------+--------+
-|      0      |      road     | 0.9877 |   0.9932  | 0.9944 | 0.9938 |
-|      1      |    sidewalk   | 0.807  |    0.89   | 0.8964 | 0.8932 |
-|      2      |    building   | 0.9182 |   0.9604  | 0.9543 | 0.9573 |
-|      3      |      wall     | 0.4258 |   0.4785  | 0.7946 | 0.5973 |
-|      4      |     fence     | 0.5135 |   0.664   | 0.6937 | 0.6785 |
-|      5      |      pole     | 0.5758 |   0.6846  | 0.7838 | 0.7308 |
-|      6      | traffic light | 0.694  |   0.804   | 0.8353 | 0.8194 |
-|      7      |  traffic sign | 0.7425 |   0.8371  | 0.868  | 0.8522 |
-|      8      |   vegetation  | 0.9317 |   0.9707  | 0.9586 | 0.9646 |
-|      9      |    terrain    | 0.604  |   0.7055  | 0.8077 | 0.7531 |
-|      10     |      sky      | 0.9525 |   0.9786  | 0.9728 | 0.9757 |
-|      11     |     person    | 0.8068 |   0.9142  | 0.8729 | 0.8931 |
-|      12     |     rider     | 0.6131 |   0.7588  | 0.7615 | 0.7602 |
-|      13     |      car      | 0.932  |   0.9673  | 0.9623 | 0.9648 |
-|      14     |     truck     | 0.6948 |   0.8009  | 0.8398 | 0.8199 |
-|      15     |      bus      | 0.7804 |   0.9198  | 0.8374 | 0.8767 |
-|      16     |     train     | 0.5559 |   0.5925  | 0.8998 | 0.7145 |
-|      17     |   motorcycle  | 0.5718 |   0.6902  | 0.7691 | 0.7275 |
-|      18     |    bicycle    | 0.7221 |   0.8675  | 0.8117 | 0.8387 |
-+-------------+---------------+--------+-----------+--------+--------+
-```
+![这里随便写文字](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/average_results.png)
+![这里随便写文字](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results.png)
+<table>
+    <tr>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/average_results.png"><div align = "center">origin</div></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results.png"><div align = "center">gt</div></center></td>
+    </tr>
+</table>
 
 - 原图和预测图对比
 <table>
