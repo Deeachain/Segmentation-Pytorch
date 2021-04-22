@@ -83,7 +83,7 @@
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/aachen_000000_000019_gtFine_labelTrainIds.png"><div align = "center">***_gtFine_labelTrainIds</div></center></td>
     </tr>
 </table>
-
+- 本地存储路径展示:(/data/open_data/cityscapes/)
 ```
 data
   |--open_data
@@ -105,15 +105,16 @@ data
                     |--test
                         |--*******
 ```
+- 生成图片路径txt
 根据`dataset/generate_txt.py`脚本生成包含原图和标签的路径`txt`文件<br>
 总共生成3个`txt`文件:`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`<br>
-`txt`文件内容展示如下:
+- `txt`文件内容展示如下:
 ```
 leftImg8bit/train/cologne/cologne_000000_000019_leftImg8bit.png gtFine/train/cologne/cologne_000000_000019_gtFine_labelTrainIds.png
 leftImg8bit/train/cologne/cologne_000001_000019_leftImg8bit.png gtFine/train/cologne/cologne_000001_000019_gtFine_labelTrainIds.png
 ..............
 ```
-`txt`文件格式如下:
+- `txt`文件格式如下:
 ```
 原图路径+分隔符'\t'+标签路径+'\n'
 ```
