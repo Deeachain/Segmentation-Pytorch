@@ -48,13 +48,10 @@
 # 2. 环境安装
 ```pip install -r requirements.txt```<br>
 实验环境： 
-- Ubuntu 16.04 GTX1080TI 单卡 
+- Ubuntu 16.04 GTX2080TI 单卡 或 多卡
 - python==3.6.5<br>
-具体参数见requirement.txt<br>
-# 3. 数据预处理
-本项目可以实现cityscapes公开数据集<br>
-后期会上传数据集-----
-# 4. 模型搭建
+具体依赖安装包见requirement.txt<br>
+# 3. 模型搭建
 所有的模型搭建都是在builders/model_builder.py文件下导入<br>
 - [x] FCN
 - [x] FCN_ResNet
@@ -66,3 +63,23 @@
 - [x] DeepLabv3_plus
 - [x] HRNet
 - [x] DDRNet
+
+# 4. 数据预处理
+本项目可以实现公开数据集cityscapes、ISPRS<br>
+后期会上传数据集-----<br>
+此处展示cityscapes数据集准备：
+## 首先下载数据集
+- 原图和预测图对比
+
+<table>
+    <tr>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit.png"><div align = "center">xx_leftImg8bit</div></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png"><div align = "center">xx_gtFine_color</div></center></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png"><div align = "center">xx_gtFine_labelTrainIds</div></center></td>
+    </tr>
+</table>
+
+```
+
+```
+# 5. 如何训练
