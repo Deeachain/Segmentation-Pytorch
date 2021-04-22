@@ -1,6 +1,7 @@
 import os
 import torch
 import torch.backends.cudnn as cudnn
+from torch.utils import data
 from argparse import ArgumentParser
 from prettytable import PrettyTable
 from builders.model_builder import build_model
@@ -26,11 +27,13 @@ def main(args):
 
     # load the test set
     if args.predict_type == 'validation':
-        testLoader, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size, args.batch_size,
-                                                       args.num_workers, mode=args.predict_mode, gt=True)
+        testdataset, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size,
+                                                        mode=args.predict_mode, gt=True)
     else:
-        testLoader, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size, args.batch_size,
-                                                       args.num_workers, mode=args.predict_mode, gt=False)
+        testdataset, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size,
+                                                        mode=args.predict_mode, gt=False)
+    DataLoader = data.DataLoader(testdataset, batch_size=args.batch_size,
+                shuffle=False, num_workers=args.batch_size, pin_memory=True, drop_last=False)
 
     if args.cuda:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
@@ -66,7 +69,7 @@ def main(args):
           ">>>>>>>>>>>  beginning testing   >>>>>>>>>>>>\n"
           ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 
-    predict_multiscale_sliding(args=args, model=model, testLoader=testLoader, class_dict_df=class_dict_df,
+    predict_multiscale_sliding(args=args, model=model, testLoader=DataLoader, class_dict_df=class_dict_df,
                                 scales=args.scales, overlap=args.overlap, criterion=criterion,
                                 mode=args.predict_type, save_result=True)
 
