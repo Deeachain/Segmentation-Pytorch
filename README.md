@@ -5,9 +5,8 @@
 - 持续更新
 
 # 1. 效果展示（cityscapes）
-- 使用模型 DDRNet Miou=72.79%
-![这里随便写文字](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/average_results.png)
-![这里随便写文字](https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results.png)
+- 使用模型 DDRNet 1525张测试集,官方Miou=78.4069%
+
 <table>
     <tr>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/average_results.png"><div align = "center">origin</div></td>
