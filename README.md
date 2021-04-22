@@ -9,8 +9,8 @@
 
 <table>
     <tr>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/average_results.png"><div align = "center">origin</div></td>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results.png"><div align = "center">gt</div></center></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/average_results.png"><div align = "center">Average results</div></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results.png"><div align = "center">Class results</div></center></td>
     </tr>
 </table>
 
