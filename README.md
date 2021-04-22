@@ -109,7 +109,31 @@ data
 
 - 生成图片路径txt<br>
 根据`dataset/generate_txt.py`脚本生成包含原图和标签的路径`txt`文件<br>
-总共生成3个`txt`文件:`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`<br>
+总共生成3个`txt`文件:`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`,并且将三个文件复制到数据集根目录下<br>
+```
+data
+  |--open_data
+        |--cityscapes
+               |--cityscapes_train_list.txt
+               |--cityscapes_val_list.txt
+               |--cityscapes_test_list.txt
+               |--leftImg8bit
+                    |--train
+                        |--cologne
+                        |--*******
+                    |--val
+                        |--*******
+                    |--test
+                        |--*******
+               |--gtFine
+                    |--train
+                        |--cologne
+                        |--*******
+                    |--val
+                        |--*******
+                    |--test
+                        |--*******
+```
 
 - `txt`文件内容展示如下:
 ```
