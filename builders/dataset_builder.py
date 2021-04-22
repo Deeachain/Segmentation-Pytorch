@@ -1,14 +1,10 @@
 import os
 import pickle
 import pandas as pd
-from torch.utils import data
 from dataset.cityscapes.cityscapes import CityscapesTrainDataSet, CityscapesTrainInform, CityscapesValDataSet, \
     CityscapesTestDataSet
-from dataset.paris.paris import ParisTrainDataSet, ParisTestDataSet, ParisTrainInform
-from dataset.isprs.isprs import IsprsTrainDataSet, IsprsValDataSet, IsprsTestDataSet, IsprsTrainInform
 
-
-def build_dataset_train(root, dataset, base_size, crop_size, batch_size, random_scale, num_workers):
+def build_dataset_train(root, dataset, base_size, crop_size):
     data_dir = os.path.join(root, dataset)
     train_data_list = os.path.join(data_dir, dataset + '_' + 'train_list.txt')
     inform_data_file = os.path.join('./dataset/inform/', dataset + '_inform.pkl')
@@ -19,12 +15,6 @@ def build_dataset_train(root, dataset, base_size, crop_size, batch_size, random_
         if dataset == "cityscapes":
             dataCollect = CityscapesTrainInform(data_dir, 19, train_set_file=train_data_list,
                                                 inform_data_file=inform_data_file)
-        elif dataset == 'paris':
-            dataCollect = ParisTrainInform(data_dir, 3, train_set_file=train_data_list,
-                                           inform_data_file=inform_data_file)
-        elif dataset == 'postdam' or dataset == 'vaihingen':
-            dataCollect = IsprsTrainInform(data_dir, 6, train_set_file=train_data_list,
-                                           inform_data_file=inform_data_file)
         else:
             raise NotImplementedError(
                 "This repository now supports two datasets: cityscapes and camvid, %s is not included" % dataset)
@@ -37,35 +27,12 @@ def build_dataset_train(root, dataset, base_size, crop_size, batch_size, random_
         datas = pickle.load(open(inform_data_file, "rb"))
 
     if dataset == "cityscapes":
-        trainLoader = data.DataLoader(
-            CityscapesTrainDataSet(data_dir, train_data_list, base_size=base_size, crop_size=crop_size,
-                                   mean=datas['mean'], std=datas['std'], ignore_label=255),
-            batch_size=batch_size, shuffle=True, num_workers=num_workers,
-            pin_memory=False, drop_last=True)
-
-        return datas, trainLoader
-
-    elif dataset == "paris":
-        trainLoader = data.DataLoader(
-            ParisTrainDataSet(data_dir, train_data_list, scale=random_scale, crop_size=crop_size,
-                                   mean=datas['mean'], std=datas['std'], ignore_label=255),
-            batch_size=batch_size, shuffle=True, num_workers=num_workers,
-            pin_memory=False, drop_last=True)
-
-        return datas, trainLoader
-
-    elif dataset == "postdam" or dataset == 'vaihingen':
-        trainLoader = data.DataLoader(
-            IsprsTrainDataSet(data_dir, train_data_list, base_size=base_size, crop_size=crop_size,
-                                   mean=datas['mean'], std=datas['std'], ignore_label=255),
-            batch_size=batch_size, shuffle=True, num_workers=num_workers,
-            pin_memory=False, drop_last=True)
-
-        return datas, trainLoader
+        TrainDataSet = CityscapesTrainDataSet(data_dir, train_data_list, base_size=base_size, crop_size=crop_size,
+                                        mean=datas['mean'], std=datas['std'], ignore_label=255)
+        return datas, TrainDataSet
 
 
-def build_dataset_test(root, dataset, crop_size, batch_size, num_workers=4, mode='whole', gt=False):
-    # data_dir = os.path.join('/data/dingcheng', dataset)
+def build_dataset_test(root, dataset, crop_size, mode='whole', gt=False):
     data_dir = os.path.join(root, dataset)
     inform_data_file = os.path.join('./dataset/inform/', dataset + '_inform.pkl')
     train_data_list = os.path.join(data_dir, dataset + '_train_list.txt')
@@ -80,12 +47,6 @@ def build_dataset_test(root, dataset, crop_size, batch_size, num_workers=4, mode
         if dataset == "cityscapes":
             dataCollect = CityscapesTrainInform(data_dir, 19, train_set_file=train_data_list,
                                                 inform_data_file=inform_data_file)
-        elif dataset == 'paris':
-            dataCollect = ParisTrainInform(data_dir, 3, train_set_file=train_data_list,
-                                           inform_data_file=inform_data_file)
-        elif dataset == 'postdam' or dataset == 'vaihingen':
-            dataCollect = IsprsTrainInform(data_dir, 6, train_set_file=train_data_list,
-                                           inform_data_file=inform_data_file)
         else:
             raise NotImplementedError(
                 "This repository now supports two datasets: cityscapes and camvid, %s is not included" % dataset)
@@ -103,34 +64,10 @@ def build_dataset_test(root, dataset, crop_size, batch_size, num_workers=4, mode
         # if test on the test set, set none_gt to True
         if gt:
             test_data_list = os.path.join(data_dir, dataset + '_val' + '_list.txt')
-            testLoader = data.DataLoader(
-                CityscapesValDataSet(data_dir, test_data_list, crop_size=crop_size, mean=datas['mean'],
-                                     std=datas['std'], ignore_label=255),
-                batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=False, drop_last=False)
+            testdataset = CityscapesValDataSet(data_dir, test_data_list, crop_size=crop_size, mean=datas['mean'],
+                                     std=datas['std'], ignore_label=255)
         else:
             test_data_list = os.path.join(data_dir, dataset + '_test' + '_list.txt')
-            testLoader = data.DataLoader(
-                CityscapesTestDataSet(data_dir, test_data_list, crop_size=crop_size, mean=datas['mean'],
-                                      std=datas['std'], ignore_label=255),
-                batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=False, drop_last=False)
-        return testLoader, class_dict_df
-
-    elif dataset == "paris":
-        testLoader = data.DataLoader(
-            ParisTestDataSet(data_dir, test_data_list, mean=datas['mean'], std=datas['std'], ignore_label=255),
-            batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=False)
-
-        return testLoader, class_dict_df
-
-    elif dataset == "postdam" or dataset == 'vaihingen':
-        if mode == 'whole':
-            testLoader = data.DataLoader(
-                IsprsValDataSet(data_dir, test_data_list, crop_size=crop_size, mean=datas['mean'], std=datas['std'],
-                ignore_label=255), batch_size=batch_size, shuffle=True, num_workers=num_workers, 
-                pin_memory=False, drop_last=False)
-        else:
-            testLoader = data.DataLoader(
-                IsprsTestDataSet(data_dir, test_data_list, crop_size=crop_size, mean=datas['mean'], std=datas['std'],
-                ignore_label=255), batch_size=batch_size, shuffle=True, num_workers=num_workers, 
-                pin_memory=False, drop_last=False)
-        return testLoader, class_dict_df
+            testdataset = CityscapesTestDataSet(data_dir, test_data_list, crop_size=crop_size, mean=datas['mean'],
+                                      std=datas['std'], ignore_label=255)
+        return testdataset, class_dict_df
