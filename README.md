@@ -47,8 +47,8 @@
 
 | Model| Backbone| val mIoU | test mIoU | Pretrained Model |
 | :--- | :---: |:---: |:---:|:---:|
-| PSPNet    | ResNet 50    | -                | - |  |
-| DDRNet    |     | 81% | 78%  |  |
+| PSPNet | ResNet 50 | - | - |  |
+| DDRNet | - | 81% | 78% |  |
 Updating more model.......
 
 # 4. 数据预处理
