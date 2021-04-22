@@ -3,7 +3,7 @@
 - 2020.12.10 项目结构调整，已经删除之前代码，调整结束会重新上传代码
 - 2021.04.09 重新上传代码，"V1 commit"
 - 2021.04.22 更新torch distributed training
-持续更新
+- 持续更新
 
 # 1. 效果展示（cityscapes）
 - 使用模型 DDRNet Miou=72.79%
