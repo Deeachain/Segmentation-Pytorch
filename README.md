@@ -45,6 +45,10 @@
 - [x] HRNet
 - [x] DDRNet
 
+| Model| Backbone| val mIoU | test mIoU | Pretrained Model |
+| :--- | :---: |:---: |:---:|:---:|
+| PSPNet    | ResNet 50    | -                | - |  |
+| DDRNet    | 81%    | 78%                | - |  |
 # 4. 数据预处理
 本项目可以实现公开数据集Cityscapes、ISPRS<br>
 后期会上传数据集-----<br>
