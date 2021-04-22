@@ -67,7 +67,7 @@
     </tr>
 </table>
 
-- 本地存储路径展示:(/data/open_data/cityscapes/)
+- 本地存储路径展示`/data/open_data/cityscapes/`:
 ```
 data
   |--open_data
