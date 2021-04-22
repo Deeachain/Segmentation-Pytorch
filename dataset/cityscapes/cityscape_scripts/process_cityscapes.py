@@ -483,5 +483,5 @@ def main(cityscapesPath):
 
 # call the main
 if __name__ == "__main__":
-    cityscapes_path = '../../../vision_datasets/cityscapes/'
+    cityscapes_path = '/data/open_data/cityscapes/'
     main(cityscapes_path)
