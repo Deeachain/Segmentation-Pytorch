@@ -107,9 +107,10 @@ data
                         |--*******
 ```
 
-- 生成图片路径txt
+- 生成图片路径txt<br>
 根据`dataset/generate_txt.py`脚本生成包含原图和标签的路径`txt`文件<br>
 总共生成3个`txt`文件:`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`<br>
+
 - `txt`文件内容展示如下:
 ```
 leftImg8bit/train/cologne/cologne_000000_000019_leftImg8bit.png gtFine/train/cologne/cologne_000000_000019_gtFine_labelTrainIds.png
