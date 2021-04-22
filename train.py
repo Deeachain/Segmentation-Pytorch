@@ -13,6 +13,9 @@ import time
 import torch.backends.cudnn as cudnn
 from argparse import ArgumentParser
 from tqdm import tqdm
+from torch.utils import data
+import torch.distributed as dist
+import torch.multiprocessing as mp
 # user
 from builders.model_builder import build_model
 from builders.dataset_builder import build_dataset_train, build_dataset_test
@@ -23,6 +26,8 @@ from utils.plot_log import draw_log
 from utils.record_log import record_log
 from utils.earlyStopping import EarlyStopping
 from utils.scheduler.lr_scheduler import PolyLR
+from utils.distributed import Distribute
+
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -30,7 +35,8 @@ warnings.filterwarnings('ignore')
 sys.setrecursionlimit(1000000)  # solve problem 'maximum recursion depth exceeded'
 GLOBAL_SEED = 88
 
-def train(args, train_loader, model, criterion, optimizer, epoch):
+
+def train(args, train_loader, model, criterion, optimizer, epoch, device):
     """
     args:
        train_loader: loaded for training dataset
@@ -49,7 +55,6 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
                 total=total_batches,
                 desc='Epoch {}/{}'.format(epoch, args.max_epochs))
     for iteration, batch in pbar:
-
         max_iter = args.max_epochs * total_batches
         cur_iter = (epoch - 1) * total_batches + iteration
         scheduler = PolyLR(optimizer,
@@ -63,8 +68,8 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
 
         images, labels, _, _ = batch
 
-        images = images.cuda().float()
-        labels = labels.cuda().long()
+        images = images.to(device).float()
+        labels = labels.to(device).long()
         output = model(images)
 
         loss = 0
@@ -84,7 +89,7 @@ def train(args, train_loader, model, criterion, optimizer, epoch):
         epoch_loss.append(loss.item())
 
     average_epoch_loss_train = sum(epoch_loss) / len(epoch_loss)
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
     return average_epoch_loss_train, lr
 
 
@@ -99,18 +104,38 @@ def main(args):
     # cudnn.benchmark = True  # 寻找最优配置
     # cudnn.deterministic = True  # 减少波动
 
+    # learning scheduling, for 10 epoch lr*0.8
+    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.85)
+
     # build the model and initialization weights
     model = build_model(args.model, args.classes, args.backbone, args.pretrained, args.out_stride, args.mult_grid)
 
-    # load train set and data augmentation
-    datas, trainLoader = build_dataset_train(args.root, args.dataset, args.base_size, args.crop_size,
-                                             args.batch_size, args.random_scale, args.num_workers)
-    # load the test set, if want set cityscapes test dataset change none_gt=False
-    testLoader, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size, args.batch_size // 2,
-                                                   args.num_workers, mode=args.predict_mode, gt=True)
-
     # define loss function, respectively
     criterion = build_loss(args, None, ignore_label)
+
+    # load train set and data augmentation
+    datas, traindataset = build_dataset_train(args.root, args.dataset, args.base_size, args.crop_size,
+                                              args.batch_size, args.random_scale, args.num_workers)
+    # load the test set, if want set cityscapes test dataset change none_gt=False
+    testdataset, class_dict_df = build_dataset_test(args.root, args.dataset, args.crop_size, args.batch_size // 2,
+                                                    args.num_workers, mode=args.predict_mode, gt=True)
+
+    # move model and criterion on cuda
+    if args.cuda:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus_id
+        dist.init_process_group(backend="nccl", init_method='env://')
+        args.local_rank = torch.distributed.get_rank()
+        torch.cuda.set_device(args.local_rank)
+        device = torch.device("cuda", args.local_rank)
+        gpus = len(list(os.environ["CUDA_VISIBLE_DEVICES"])) - (len(list(os.environ["CUDA_VISIBLE_DEVICES"])) // 2)
+
+        trainLoader, model, criterion = Distribute(args, traindataset, model, criterion, device, gpus)
+        # testLoader, _, _ = Distribute(args, testdataset, model, criterion, device, gpus)
+        testLoader = data.DataLoader(testdataset, batch_size=args.batch_size,
+                                     shuffle=True, num_workers=args.batch_size, pin_memory=True, drop_last=False)
+
+        if not torch.cuda.is_available():
+            raise Exception("No GPU found or Wrong gpu id, please run without --cuda")
 
     # define optimization strategy
     # parameters = [{'params': model.get_1x_lr_params(), 'lr': args.lr},
@@ -124,44 +149,28 @@ def main(args):
     elif args.optim == 'adamw':
         optimizer = torch.optim.AdamW(parameters, weight_decay=5e-4)
 
-    # learning scheduling, for 10 epoch lr*0.8
-    # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.85)
-
-    # move model and criterion on cuda
-    if args.cuda:
-        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus_id
-        criterion = criterion.cuda()
-        if torch.cuda.device_count() > 1:
-            model = nn.DataParallel(model).cuda()
-        else:
-            model = model.cuda()
-        if not torch.cuda.is_available():
-            raise Exception(
-                "No GPU found or Wrong gpu id, please run without --cuda")
-
     # initial log file val output save
     args.savedir = (args.savedir + args.dataset + '/' + args.model + '/')
-    if not os.path.exists(args.savedir):
+    if not os.path.exists(args.savedir) and args.local_rank == 0:
         os.makedirs(args.savedir)
 
     # save_seg_dir
     args.save_seg_dir = os.path.join(args.savedir, args.predict_mode)
-    if not os.path.exists(args.save_seg_dir):
+    if not os.path.exists(args.save_seg_dir) and args.local_rank == 0:
         os.makedirs(args.save_seg_dir)
 
     recorder = record_log(args)
-    if args.resume == None:
-        recorder.record_args(datas,
-                             str(netParams(model) / 1e6) + ' M', GLOBAL_SEED)
+    if args.resume == None and args.local_rank == 0:
+        recorder.record_args(datas, str(netParams(model) / 1e6) + ' M', GLOBAL_SEED)
 
     # initialize the early_stopping object
-    early_stopping = EarlyStopping(patience=800)
-
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
-          ">>>>>>>>>>>  beginning training   >>>>>>>>>>>\n"
-          ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
+    early_stopping = EarlyStopping(patience=300)
     start_epoch = 1
+    if args.local_rank == 0:
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
+              ">>>>>>>>>>>  beginning training   >>>>>>>>>>>\n"
+              ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
     epoch_list = []
     lossTr_list = []
     Miou_list = []
@@ -188,13 +197,15 @@ def main(args):
             if 'module.' in check_list[0][0]:  # 读取使用多卡训练权重,并且此次使用单卡继续训练
                 new_stat_dict = {}
                 for k, v in checkpoint['model'].items():
-                    new_stat_dict[k[7:]] = v
+                    new_stat_dict[k[:]] = v
                 model.load_state_dict(new_stat_dict, strict=True)
             else:  # 读取单卡训练权重,并且此次使用单卡继续训练
                 model.load_state_dict(checkpoint['model'])
-            print("loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
+            if args.local_rank == 0:
+                print("loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
         else:
-            print("no checkpoint found at '{}'".format(args.resume))
+            if args.local_rank == 0:
+                print("no checkpoint found at '{}'".format(args.resume))
     else:
         logger = recorder.initial_logfile()
         logger.flush()
@@ -204,89 +215,92 @@ def main(args):
         # training
         train_start = time.time()
 
-        lossTr, lr = train(args, trainLoader, model, criterion, optimizer,
-                           epoch)
-        lossTr_list.append(lossTr)
+        lossTr, lr = train(args, trainLoader, model, criterion, optimizer, epoch, device)
+        if args.local_rank == 0:
+            lossTr_list.append(lossTr)
 
         train_end = time.time()
         train_per_epoch_seconds = train_end - train_start
         validation_per_epoch_seconds = 60  # init validation time
         # validation if mode==validation, predict with label; elif mode==predict, predict without label.
+
         if epoch % args.val_epochs == 0 or epoch == 1 or args.max_epochs - 10 < epoch <= args.max_epochs:
             validation_start = time.time()
 
             loss, FWIoU, Miou, MIoU, PerCiou_set, Pa, PerCpa_set, Mpa, MF, F_set, F1_avg = \
                 predict_multiscale_sliding(args=args, model=model,
-                                            testLoader=testLoader,
-                                            class_dict_df=class_dict_df,
-                                            # scales=[1.25, 1.5, 1.75, 2.0],
-                                            scales=[1.0],
-                                            overlap=0.3,
-                                            criterion=criterion,
-                                            mode=args.predict_type,
-                                            save_result=True)
-            epoch_list.append(epoch)
-            Miou_list.append(Miou)
-            lossVal_list.append(loss.item())
-            # record trainVal information
-            recorder.record_trainVal_log(logger, epoch, lr, lossTr, loss,
-                                         FWIoU, Miou, MIoU, PerCiou_set, Pa, Mpa,
-                                         PerCpa_set, MF, F_set, F1_avg,
-                                         class_dict_df)
-            
+                                           testLoader=testLoader,
+                                           class_dict_df=class_dict_df,
+                                           # scales=[1.25, 1.5, 1.75, 2.0],
+                                           scales=[1.0],
+                                           overlap=0.3,
+                                           criterion=criterion,
+                                           mode=args.predict_type,
+                                           save_result=True)
             torch.cuda.empty_cache()
-            validation_end = time.time()
-            validation_per_epoch_seconds = validation_end - validation_start
+
+            if args.local_rank == 0:
+                epoch_list.append(epoch)
+                Miou_list.append(Miou)
+                lossVal_list.append(loss.item())
+                # record trainVal information
+                recorder.record_trainVal_log(logger, epoch, lr, lossTr, loss,
+                                             FWIoU, Miou, MIoU, PerCiou_set, Pa, Mpa,
+                                             PerCpa_set, MF, F_set, F1_avg,
+                                             class_dict_df)
+
+                torch.cuda.empty_cache()
+                validation_end = time.time()
+                validation_per_epoch_seconds = validation_end - validation_start
         else:
-            # record train information
-            recorder.record_train_log(logger, epoch, lr, lossTr)
+            if args.local_rank == 0:
+                # record train information
+                recorder.record_train_log(logger, epoch, lr, lossTr)
 
-        # # Update lr_scheduler. In pytorch 1.1.0 and later, should call 'optimizer.step()' before 'lr_scheduler.step()'
-        # lr_scheduler.step()
+            # # Update lr_scheduler. In pytorch 1.1.0 and later, should call 'optimizer.step()' before 'lr_scheduler.step()'
+            # lr_scheduler.step()
+        if args.local_rank == 0:
+            # draw log fig
+            draw_log(args, epoch, epoch_list, lossTr_list, Miou_list, lossVal_list)
 
-        # draw log fig
-        draw_log(args, epoch, epoch_list, lossTr_list, Miou_list, lossVal_list)
+            # save the model
+            model_file_name = args.savedir + '/best_model.pth'
+            last_model_file_name = args.savedir + '/last_model.pth'
+            state = {
+                "epoch": epoch,
+                "model": model.state_dict(),
+                'optimizer': optimizer.state_dict()
+            }
+            if Miou > Best_Miou:
+                Best_Miou = Miou
+                torch.save(state, model_file_name)
+                recorder.record_best_epoch(epoch, Best_Miou, Pa)
 
-        # save the model
-        model_file_name = args.savedir + '/best_model.pth'
-        last_model_file_name = args.savedir + '/last_model.pth'
-        state = {
-            "epoch": epoch,
-            "model": model.state_dict(),
-            'optimizer': optimizer.state_dict()
-        }
-        if Miou > Best_Miou:
-            Best_Miou = Miou
-            torch.save(state, model_file_name)
-            recorder.record_best_epoch(epoch, Best_Miou, Pa)
+            # early_stopping monitor
+            early_stopping.monitor(monitor=Miou)
+            if early_stopping.early_stop:
+                print("Early stopping and Save checkpoint")
+                if not os.path.exists(last_model_file_name):
+                    torch.save(state, last_model_file_name)
+                    torch.cuda.empty_cache()  # empty_cache
 
-        # early_stopping monitor
-        early_stopping.monitor(monitor=Miou)
-        if early_stopping.early_stop:
-            print("Early stopping and Save checkpoint")
-            if not os.path.exists(last_model_file_name):
-                torch.save(state, last_model_file_name)
-                torch.cuda.empty_cache()  # empty_cache
+                    loss, FWIoU, Miou, Miou_Noback, PerCiou_set, Pa, PerCpa_set, Mpa, MF, F_set, F1_Noback = \
+                        predict_multiscale_sliding(args=args, model=model,
+                                                   testLoader=testLoader,
+                                                   # scales=[1.25, 1.5, 1.75, 2.0],
+                                                   scales=[1.0],
+                                                   overlap=0.3,
+                                                   criterion=criterion,
+                                                   mode=args.predict_type,
+                                                   save_result=False)
+                    print("Epoch {}  lr= {:.6f}  Train Loss={:.4f}  Val Loss={:.4f}  Miou={:.4f}  PerCiou_set={}\n"
+                          .format(epoch, lr, lossTr, loss, Miou, str(PerCiou_set)))
+                break
 
-                loss, FWIoU, Miou, Miou_Noback, PerCiou_set, Pa, PerCpa_set, Mpa, MF, F_set, F1_Noback = \
-                    predict_multiscale_sliding(args=args, model=model,
-                                                testLoader=testLoader,
-                                                # scales=[1.25, 1.5, 1.75, 2.0],
-                                                scales=[1.0],
-                                                overlap=0.3,
-                                                criterion=criterion,
-                                                mode=args.predict_type,
-                                                save_result=False)
-                print("Epoch {}  lr= {:.6f}  Train Loss={:.4f}  Val Loss={:.4f}  Miou={:.4f}  PerCiou_set={}\n"
-                        .format(epoch, lr, lossTr, loss, Miou, str(PerCiou_set)))
-            break
-
-        total_second = start_time + (args.max_epochs - epoch) * train_per_epoch_seconds + \
-                       ((args.max_epochs - epoch) / args.val_epochs + 10) * validation_per_epoch_seconds + 43200
-        print('Best Validation MIoU:{}'.format(Best_Miou))
-        print('Training deadline is: {}\n'.format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_second))))
-
-    logger.close()
+            total_second = start_time + (args.max_epochs - epoch) * train_per_epoch_seconds + \
+                           ((args.max_epochs - epoch) / args.val_epochs + 10) * validation_per_epoch_seconds + 43200
+            print('Best Validation MIoU:{}'.format(Best_Miou))
+            print('Training deadline is: {}\n'.format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_second))))
 
 
 def parse_args():
@@ -326,6 +340,7 @@ def parse_args():
                         help="choice loss for train or val in list")
     # cuda setting
     parser.add_argument('--cuda', type=bool, default=True, help="running on CPU or GPU")
+    parser.add_argument('--local_rank', type=int, default=0)
     parser.add_argument('--gpus_id', type=str, default="0", help="default GPU devices 0")
     # checkpoint and log
     parser.add_argument('--resume', type=str, default=None,
@@ -350,14 +365,19 @@ if __name__ == '__main__':
     elif args.dataset == 'postdam' or args.dataset == 'vaihingen':
         args.classes = 6
         ignore_label = 255
+    elif args.dataset == 'aeroscapes':
+        args.classes = 12
+        ignore_label = 255
     else:
         raise NotImplementedError(
             "This repository now supports datasets %s is not included" %
             args.dataset)
 
     main(args)
+    # mp.spawn(main, nprocs=args.gpus, args=(args))
 
     end = time.time()
     hour = 1.0 * (end - start) / 3600
     minute = (hour - int(hour)) * 60
-    print("training time: %d hour %d minutes" % (int(hour), int(minute)))
+    if args.local_rank == 0:
+        print("training time: %d hour %d minutes" % (int(hour), int(minute)))
