@@ -59,9 +59,9 @@ a) *color.png             : the class is encoded by its color
 b) *labelIds.png          : the class is encoded by its ID
 c) *instanceIds.png       : the class and the instance are encoded by an instance ID
 ```
-
+## 4.2 标签图片onehot编码
 语义分割任务真实用到的标签灰度图onehot编码是0-18, 因此需要对标签进行编码. 使用编码脚本`dataset/cityscapes/cityscapes_scripts/process_cityscapes.py`
-对图片进行处理, 得到`*labelTrainIds.png`. `process_cityscapes.py`使用方法:修改486行`cityscapes_path`为自己的数据存放路径.
+对图片进行处理, 得到`*labelTrainIds.png`. `process_cityscapes.py`使用方法: 修改486行`cityscapes_path`为自己的数据存放路径.
 
 - 原图、彩色标签图和灰度标签图(0-18)对比
 <table>
@@ -95,6 +95,7 @@ data
                         |--*******
 ```
 
+## 4.3 生成包含路径的txt
 - 生成图片路径txt<br>
 根据`dataset/generate_txt.py`脚本, 生成包含原图和标签的路径`txt`文件. 总共生成3个`txt`文件:
 `cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`,并且将三个文件复制到数据集根目录下<br>
