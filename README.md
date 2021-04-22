@@ -68,14 +68,19 @@
 本项目可以实现公开数据集cityscapes、ISPRS<br>
 后期会上传数据集-----<br>
 此处展示cityscapes数据集准备：
-## 首先下载数据集
-- 原图和预测图对比
-
+## 4.1 首先下载数据集
+原始数据集的标签灰度图onehot编码是0-32,语义分割任务真实用到的标签灰度图onehot编码是0-18,因此需要对标签进行编码。
+```
+原图：aachen_000000_000019_leftImg8bit
+彩色标签：aachen_000000_000019_gtFine_color
+灰度标签(0-18)：aachen_000000_000019_gtFine_labelTrainIds
+```
+- 原图、彩色标签图和灰度标签图对比
 <table>
     <tr>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit.png"><div align = "center">***_leftImg8bit</div></td>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png"><div align = "center">***_gtFine_color</div></center></td>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png"><div align = "center">***_gtFine_labelTrainIds</div></center></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/aachen_000000_000019_leftImg8bit.png"><div align = "center">***_leftImg8bit</div></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/aachen_000000_000019_gtFine_color.png"><div align = "center">***_gtFine_color</div></center></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/aachen_000000_000019_gtFine_labelTrainIds.png"><div align = "center">***_gtFine_labelTrainIds</div></center></td>
     </tr>
 </table>
 
@@ -83,3 +88,5 @@
 
 ```
 # 5. 如何训练
+
+# 6. 如何验证
