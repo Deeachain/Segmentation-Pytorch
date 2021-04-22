@@ -1,3 +1,11 @@
+# _*_ coding: utf-8 _*_
+"""
+Time:     2020/11/30 下午5:02
+Author:   Ding Cheng(Deeachain)
+File:     validation_builder.py
+Describe: Write during my study in Nanjing University of Information and Secience Technology
+Github:   https://github.com/Deeachain
+"""
 import numpy as np
 from numpy.core.fromnumeric import shape
 from numpy.core.numeric import outer

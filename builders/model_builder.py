@@ -1,16 +1,21 @@
+# _*_ coding: utf-8 _*_
+"""
+Time:     2020/11/30 下午5:02
+Author:   Ding Cheng(Deeachain)
+File:     model_builder.py
+Describe: Write during my study in Nanjing University of Information and Secience Technology
+Github:   https://github.com/Deeachain
+"""
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
 from collections import OrderedDict
 from model.UNet import UNet
 from model.SegNet import SegNet
 from model.FCN8s import FCN
-from model.ENet import ENet
 from model.BiSeNet import BiSeNet
 from model.BiSeNetV2 import BiSeNetV2
 from model.PSPNet.pspnet import PSPNet
-# from model.PSPNet.psanet import PSANet
 from model.FCN_ResNet import FCN_ResNet
-from model.HRNet import HighResolutionNet
 from model.DeeplabV3Plus import DeepLabv3_plus
 from model.DDRNet import DDRNet
 from model.HRNet import HighResolutionNet
