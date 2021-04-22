@@ -10,8 +10,8 @@
 <table>
     <tr>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/average_results.png"><div align = "center">Average results</div></td>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-PytoWrch/blob/master/example/class_results1.png"><div align = "center">Class results1</div></center></td>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-PytoWrch/blob/master/example/class_results2.png"><div align = "center">Class results2</div></center></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results1.png"><div align = "center">Class results1</div></center></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results2.png"><div align = "center">Class results2</div></center></td>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/class_results3.png"><div align = "center">Class results3</div></center></td>
     </tr>
 </table>
