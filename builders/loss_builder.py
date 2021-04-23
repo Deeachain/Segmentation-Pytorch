@@ -1,6 +1,6 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2020/11/30 下午5:02
+Time:     2020/11/30 17:02
 Author:   Ding Cheng(Deeachain)
 File:     loss_builder.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
