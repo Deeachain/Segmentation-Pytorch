@@ -62,9 +62,9 @@ def build_model(model_name, num_classes, backbone='resnet18', pretrained=False, 
         checkpoint = model_zoo.load_url(model_urls[backbone])
         model_dict = model.state_dict()
         # print(model_dict)
-        # 筛除不加载的层结构
+        # Screen out layers that are not loaded
         pretrained_dict = {'backbone.' + k: v for k, v in checkpoint.items() if 'backbone.' + k in model_dict}
-        # 更新当前网络的结构字典
+        # Update the structure dictionary for the current network
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
 

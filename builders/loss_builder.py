@@ -21,7 +21,7 @@ def build_loss(args, datas, ignore_label):
     else:
         weight = None
 
-    # 默认使用交叉商损失函数
+    # Default uses cross quotient loss function
     criteria = CrossEntropyLoss2d(weight=weight, ignore_label=ignore_label)
     if args.loss == 'ProbOhemCrossEntropy2d':
         h, w = args.base_size, args.base_size
