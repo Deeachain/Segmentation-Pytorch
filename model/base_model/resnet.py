@@ -1,12 +1,11 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2020/11/27 上午10:23
+Time:     2020/11/27 10:23
 Author:   Cheng Ding(Deeachain)
 File:     resnet.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
 Github:   https://github.com/Deeachain
 """
-from numpy.core.fromnumeric import shape
 import torch.nn as nn
 import math
 import torch.utils.model_zoo as model_zoo
