@@ -45,10 +45,12 @@ All the modeling is done in `builders/model_builder.py`<br>
 - [x] HRNet
 - [x] DDRNet
 
-| Model| Backbone| val mIoU | test mIoU | Pretrained Model |
-| :--- | :---: |:---: |:---:|:---:|
-| PSPNet | ResNet 50 | - | - |  |
-| DDRNet | - | 81% | 78% |  |
+| Model| Backbone| Val mIoU | Test mIoU | Imagenet Pretrain| Pretrained Model |
+| :--- | :---: |:---: |:---:|:---:|:---:|
+| PSPNet | ResNet 50 | - | - | $- [x]$ | |
+| DDRNet23_slim | - |  |  | [DDRNet23_slim](https://drive.google.com/file/d/1mg5tMX7TJ9ZVcAiGSB4PEihPtrJyalB4/view) | |
+| DDRNet23 | - |  |  | [DDRNet23](https://drive.google.com/file/d/1VoUsERBeuCaiuQJufu8PqpKKtGvCTdug/view) | |
+| DDRNet39 | - | 81% | 78% | [DDRNet39](https://drive.google.com/file/d/122CMx6DZBaRRf-dOHYwuDY9vG0_UQ10i/view) | |
 Updating more model.......
 
 # 4. Data preprocessing
@@ -69,7 +71,7 @@ c) *instanceIds.png       : the class and the instance are encoded by an instanc
 The real label gray scale image Onehot encoding used by the semantic segmentation task is 0-18, so the label needs to be encoded. 
 Using scripts `dataset/cityscapes/cityscapes_scripts/process_cityscapes.py`
 to process the image and get the result `*labelTrainIds.png`. 
-`process_cityscapes.py` Usage:Modify 486 lines `Cityscapes_path'is the path to store your own data.
+`process_cityscapes.py` usage: Modify 486 lines `Cityscapes_path'is the path to store your own data.
 
 - Comparison of original image, color label image and gray label image (0-18)
 <table>
