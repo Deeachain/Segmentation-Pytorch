@@ -47,7 +47,7 @@ All the modeling is done in `builders/model_builder.py`<br>
 
 | Model| Backbone| Val mIoU | Test mIoU | Imagenet Pretrain| Pretrained Model |
 | :--- | :---: |:---: |:---:|:---:|:---:|
-| PSPNet | ResNet 50 | - | - | <input type="checkbox">|test | |
+| PSPNet | ResNet 50 | - | - | <input type="checkbox"> | |
 | DDRNet23_slim | - |  |  | [DDRNet23_slim](https://drive.google.com/file/d/1mg5tMX7TJ9ZVcAiGSB4PEihPtrJyalB4/view) | |
 | DDRNet23 | - |  |  | [DDRNet23](https://drive.google.com/file/d/1VoUsERBeuCaiuQJufu8PqpKKtGvCTdug/view) | |
 | DDRNet39 | - | 81% | 78% | [DDRNet39](https://drive.google.com/file/d/122CMx6DZBaRRf-dOHYwuDY9vG0_UQ10i/view) | |
