@@ -1,5 +1,6 @@
 """
-refer to https://github.com/jfzhang95/pytorch-deeplab-xception/blob/master/utils/metrics.py
+Reference to https://github.com/jfzhang95/pytorch-deeplab-xception/blob/master/utils/metrics.py
+Add metrics: Precision、Recall、F1-Score
 """
 import numpy as np
 np.seterr(divide='ignore', invalid='ignore')
