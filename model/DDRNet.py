@@ -1,6 +1,6 @@
 """
 This script contain three DDRNet: DDRNet23_slim、DDRNet23、DDRNet39
-Reference: https://github.com/ydhongHIT/DDRNet
+Reference from source code by author: https://github.com/ydhongHIT/DDRNet
 """
 
 '''
