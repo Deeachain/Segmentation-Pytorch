@@ -1,3 +1,11 @@
+# _*_ coding: utf-8 _*_
+"""
+Time:     2020/11/27 上午10:23
+Author:   Cheng Ding(Deeachain)
+File:     __init__.py
+Describe: Write during my study in Nanjing University of Information and Secience Technology
+Github:   https://github.com/Deeachain
+"""
 from .resnet import ResNet, resnet18, resnet34, resnet50, resnet101, resnet152
 from .xception import Xception, xception39
 
