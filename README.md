@@ -25,7 +25,7 @@
     </tr>
 </table>
 
-# 2. Environmental installation
+# 2. Install
 ```pip install -r requirements.txt```<br>
 Experimental environment:
 - Ubuntu 16.04 Nvidia-Cards >= 1
@@ -54,11 +54,11 @@ All the modeling is done in `builders/model_builder.py`<br>
 Updating more model.......
 
 # 4. Data preprocessing
-This project enables you to expose data sets: Cityscapes、ISPRS<br>
+This project enables you to expose data sets: `Cityscapes`、`ISPRS`<br>
 The data set is uploaded later .....<br>
 **Cityscapes data set preparation is shown here:**
 
-## 4.1 First, download the dataset
+## 4.1 Download the dataset
 Download the dataset from the link on the website, You can get `*leftImg8bit.png` suffix of original image under folder `leftImg8bit`, 
 `a) *color.png`、`b) *labelIds.png`、`c) *instanceIds.png` suffix of fine labeled image under folder `gtFine`.
 ```
@@ -105,8 +105,8 @@ data
                         |--*******
 ```
 
-## 4.3 Generate a txt containing the image path
-- Generate image path<br>
+## 4.3 Generate image path
+- Generate a txt containing the image path<br>
 Use script `dataset/generate_txt.py` to generate the path `txt` file containing the original image and labels. 
 A total of 3 `txt` files will be generated: `cityscapes_train_list.txt`、`cityscapes_val_list.txt`、
 `cityscapes_test_list.txt`, and copy the three files to the dataset root directory.<br>
