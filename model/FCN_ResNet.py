@@ -1,6 +1,6 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2020/12/1 下午6:23
+Time:     2020/12/1 18:23
 Author:   Ding Cheng(Deeachain)
 File:     FCN_ResNet.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
@@ -23,35 +23,17 @@ class FCN_ResNet(nn.Module):
         elif backbone == 'resnet50' or backbone == 'resnet101':
             expansion = 4
         self.backbone = build_backbone(backbone, out_stride, mult_grid)
-        # self.conv_1 = nn.Conv2d(in_channels=512*expansion, out_channels=256*expansion, kernel_size=1)
-        # self.conv_2 = nn.Conv2d(in_channels=256*expansion, out_channels=128*expansion, kernel_size=1)
-        # self.conv_3 = nn.Conv2d(in_channels=128*expansion, out_channels=64*expansion, kernel_size=1)
 
         self.conv_1 = nn.Conv2d(in_channels=512 * expansion, out_channels=num_classes, kernel_size=1)
         self.conv_2 = nn.Conv2d(in_channels=256 * expansion, out_channels=num_classes, kernel_size=1)
         self.conv_3 = nn.Conv2d(in_channels=128 * expansion, out_channels=num_classes, kernel_size=1)
         self.conv_4 = nn.Conv2d(in_channels=64 * expansion, out_channels=num_classes, kernel_size=1)
-        # nn.Sequential(nn.Dropout(0.5), nn.Conv2d(in_channels=64 * expansion, out_channels=num_classes, kernel_size=1))
 
         self._init_weight()
 
     def forward(self, x):
         layers = self.backbone(x)  # resnet 4 layers
 
-        # layers3 = self.conv_1(layers[3])
-        # temp = F.interpolate(layers3, layers[2].size()[2:], mode="bilinear", align_corners=True)
-        #
-        # temp = temp + layers[2]
-        # temp = F.interpolate(temp, layers[1].size()[2:], mode="bilinear", align_corners=True)
-        # temp = self.conv_2(temp)
-        #
-        # temp = temp + layers[1]
-        # temp = F.interpolate(temp, layers[0].size()[2:], mode="bilinear", align_corners=True)
-        # temp = self.conv_3(temp)
-        #
-        # temp = temp + layers[0]
-        # temp = F.interpolate(temp, x.size()[2:], mode="bilinear", align_corners=True)
-        # output = self.conv_4(temp)
         layers3 = self.conv_1(layers[3])
         layers3 = F.interpolate(layers3, layers[2].size()[2:], mode="bilinear", align_corners=True)
         layers2 = self.conv_2(layers[2])

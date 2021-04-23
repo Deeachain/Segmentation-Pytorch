@@ -2,12 +2,10 @@
 """
 Time:     2020/11/22 下午3:25
 Author:   Cheng Ding(Deeachain)
-Version:  V 0.1
 File:     UNet.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
 Github:   https://github.com/Deeachain
 """
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -15,14 +13,7 @@ from torchsummary import summary
 from model.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
 
 
-
-######################################################################################
-#U-Net: Convolutional Networks for BiomedicalImage Segmentation
-#Paper-Link: https://arxiv.org/pdf/1505.04597.pdf
-######################################################################################
-
 __all__ = ["UNet"]
-
 
 def conv1x1(in_planes, out_planes, stride=1):
     """1x1 convolution"""

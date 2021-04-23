@@ -1,8 +1,8 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2021/3/13 下午12:37
+Time:     2021/3/13 12:37
 Author:   Ding Cheng(Deeachain)
-File:     DeeplabV3Plus1.py
+File:     DeeplabV3Plus.py
 Github:   https://github.com/Deeachain
 """
 import math
@@ -302,7 +302,7 @@ class DeepLabv3_plus(nn.Module):
 
 
 if __name__ == "__main__":
-    model = DeepLabv3_plus(nInputChannels=3, n_classes=21, os=16, pretrained=True, _print=True)
+    model = DeepLabv3_plus(nInputChannels=3, n_classes=21, os=16, pretrained=True)
     model.eval()
     image = torch.randn(1, 3, 512, 512)
     with torch.no_grad():

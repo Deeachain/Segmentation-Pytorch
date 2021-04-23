@@ -1,13 +1,9 @@
-# ------------------------------------------------------------------------------
-# Copyright (c) Microsoft
-# Licensed under the MIT License.
-# Written by Ke Sun (sunk@mail.ustc.edu.cn)
-# ------------------------------------------------------------------------------
-
+"""
+Reference from source code by author: https://github.com/HRNet/HRNet-Semantic-Segmentation
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-# from model.DeeplabV3Plus import BatchNorm2d
 
 import os
 import logging

@@ -1,13 +1,12 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2020/11/22 下午7:06
+Time:     2020/11/22 19:06
 Author:   Cheng Ding(Deeachain)
 Version:  V 0.1
 File:     FCN8s.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
 Github:   https://github.com/Deeachain
 """
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
