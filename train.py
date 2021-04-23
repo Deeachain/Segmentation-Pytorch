@@ -1,6 +1,6 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2020/11/30 下午5:02
+Time:     2020/11/30 17:02
 Author:   Ding Cheng(Deeachain)
 File:     train.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
@@ -15,7 +15,6 @@ from argparse import ArgumentParser
 from tqdm import tqdm
 from torch.utils import data
 import torch.distributed as dist
-import torch.multiprocessing as mp
 # user
 from builders.model_builder import build_model
 from builders.dataset_builder import build_dataset_train, build_dataset_test
@@ -40,11 +39,12 @@ def train(args, train_loader, model, criterion, optimizer, epoch, device):
     """
     args:
        train_loader: loaded for training dataset
-       model: model
-       criterion: loss function
-       optimizer: optimization algorithm, such as ADAM or SGD
-       epoch: epoch number
-    return: average loss, per class IoU, and mean IoU
+       model       : model
+       criterion   : loss function
+       optimizer   : optimization algorithm, such as ADAM or SGD
+       epoch       : epoch number
+       device      : cuda
+    return: average loss, lr
     """
 
     model.train()
@@ -101,8 +101,8 @@ def main(args):
     # set the seed
     setup_seed(GLOBAL_SEED)
     # cudnn.enabled = True
-    # cudnn.benchmark = True  # 寻找最优配置
-    # cudnn.deterministic = True  # 减少波动
+    # cudnn.benchmark = True  # find the optimal configuration
+    # cudnn.deterministic = True  # reduce volatility
 
     # learning scheduling, for 10 epoch lr*0.8
     # lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.85)
@@ -129,7 +129,9 @@ def main(args):
         gpus = len(list(os.environ["CUDA_VISIBLE_DEVICES"])) - (len(list(os.environ["CUDA_VISIBLE_DEVICES"])) // 2)
 
         trainLoader, model, criterion = Distribute(args, traindataset, model, criterion, device, gpus)
+        # test with distributed
         # testLoader, _, _ = Distribute(args, testdataset, model, criterion, device, gpus)
+        # test with single card
         testLoader = data.DataLoader(testdataset, batch_size=args.batch_size,
                                      shuffle=True, num_workers=args.batch_size, pin_memory=True, drop_last=False)
 
@@ -189,16 +191,16 @@ def main(args):
         if os.path.isfile(args.resume):
             checkpoint = torch.load(args.resume)
             start_epoch = checkpoint['epoch'] + 1
-
             optimizer.load_state_dict(checkpoint['optimizer'])
-
             check_list = [i for i in checkpoint['model'].items()]
-            if 'module.' in check_list[0][0]:  # 读取使用多卡训练权重,并且此次使用单卡继续训练
+            # Read weights with multiple cards, and continue training with a single card this time
+            if 'module.' in check_list[0][0]:
                 new_stat_dict = {}
                 for k, v in checkpoint['model'].items():
                     new_stat_dict[k[:]] = v
                 model.load_state_dict(new_stat_dict, strict=True)
-            else:  # 读取单卡训练权重,并且此次使用单卡继续训练
+            # Read the training weight of a single card, and continue training with a single card this time
+            else:
                 model.load_state_dict(checkpoint['model'])
             if args.local_rank == 0:
                 print("loaded checkpoint '{}' (epoch {})".format(args.resume, checkpoint['epoch']))
@@ -286,7 +288,6 @@ def main(args):
                     loss, FWIoU, Miou, Miou_Noback, PerCiou_set, Pa, PerCpa_set, Mpa, MF, F_set, F1_Noback = \
                         predict_multiscale_sliding(args=args, model=model,
                                                    testLoader=testLoader,
-                                                   # scales=[1.25, 1.5, 1.75, 2.0],
                                                    scales=[1.0],
                                                    overlap=0.3,
                                                    criterion=criterion,
@@ -303,7 +304,7 @@ def main(args):
 
 
 def parse_args():
-    parser = ArgumentParser(description='Efficient semantic segmentation')
+    parser = ArgumentParser(description='Semantic segmentation with pytorch')
     # model and dataset
     parser.add_argument('--model', type=str, default="DualSeg_res50", help="model name")
     parser.add_argument('--backbone', type=str, default="None", help="backbone name")
@@ -358,22 +359,12 @@ if __name__ == '__main__':
     if args.dataset == 'cityscapes':
         args.classes = 19
         ignore_label = 255
-    elif args.dataset == 'paris':
-        args.classes = 3
-        ignore_label = 255
-    elif args.dataset == 'postdam' or args.dataset == 'vaihingen':
-        args.classes = 6
-        ignore_label = 255
-    elif args.dataset == 'aeroscapes':
-        args.classes = 12
-        ignore_label = 255
     else:
         raise NotImplementedError(
             "This repository now supports datasets %s is not included" %
             args.dataset)
 
     main(args)
-    # mp.spawn(main, nprocs=args.gpus, args=(args))
 
     end = time.time()
     hour = 1.0 * (end - start) / 3600

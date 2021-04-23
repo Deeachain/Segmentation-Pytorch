@@ -1,3 +1,11 @@
+# _*_ coding: utf-8 _*_
+"""
+Time:     2020/11/30 17:02
+Author:   Ding Cheng(Deeachain)
+File:     predict.py
+Describe: Write during my study in Nanjing University of Information and Secience Technology
+Github:   https://github.com/Deeachain
+"""
 import os
 import torch
 import torch.backends.cudnn as cudnn
@@ -22,7 +30,6 @@ def main(args):
     print(t.get_string(title="Predict Arguments"))
 
     # build the model
-    # model = build_model(args.model, args.classes, args.backbone)
     model = build_model(args.model, args.classes, args.backbone, args.pretrained, args.out_stride, args.mult_grid)
 
     # load the test set
@@ -37,7 +44,7 @@ def main(args):
 
     if args.cuda:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpus
-        model = model.cuda()  # using GPU for inference
+        model = model.cuda()
         cudnn.benchmark = True
         if not torch.cuda.is_available():
             raise Exception("no GPU found or wrong gpu id, please run without --cuda")
@@ -48,27 +55,25 @@ def main(args):
     if args.checkpoint:
         if os.path.isfile(args.checkpoint):
             checkpoint = torch.load(args.checkpoint)['model']
-
             check_list = [i for i in checkpoint.items()]
+            # Read weights with multiple cards, and continue training with a single card this time
             if 'module.' in check_list[0][0]:  # 读取使用多卡训练权重,并且此次使用单卡预测
                 new_stat_dict = {}
                 for k, v in checkpoint.items():
                     new_stat_dict[k[7:]] = v
                 model.load_state_dict(new_stat_dict, strict=True)
-            else:  # 读取使用单卡训练权重,并且此次使用单卡预测
+            # Read the training weight of a single card, and continue training with a single card this time
+            else:
                 model.load_state_dict(checkpoint)
-
         else:
             print("no checkpoint found at '{}'".format(args.checkpoint))
             raise FileNotFoundError("no checkpoint found at '{}'".format(args.checkpoint))
 
-    # define loss function, respectively
+    # define loss function
     criterion = build_loss(args, None, 255)
-
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n"
           ">>>>>>>>>>>  beginning testing   >>>>>>>>>>>>\n"
           ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
-
     predict_multiscale_sliding(args=args, model=model, testLoader=DataLoader, class_dict_df=class_dict_df,
                                 scales=args.scales, overlap=args.overlap, criterion=criterion,
                                 mode=args.predict_type, save_result=True)
@@ -117,14 +122,6 @@ if __name__ == '__main__':
 
     if args.dataset == 'cityscapes':
         args.classes = 19
-    elif args.dataset == 'paris':
-        args.classes = 3
-    elif args.dataset == 'austin':
-        args.classes = 2
-    elif args.dataset == 'road':
-        args.classes = 2
-    elif args.dataset == 'postdam' or args.dataset == 'vaihingen':
-        args.classes = 6
     else:
         raise NotImplementedError(
             "This repository now supports datasets %s is not included" % args.dataset)
