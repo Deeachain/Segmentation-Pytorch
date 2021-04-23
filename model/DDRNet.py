@@ -1,20 +1,29 @@
-import math
-import torch
-import numpy as np 
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import init
-from collections import OrderedDict
+"""
+This script contain three DDRNet: DDRNet23_slim、DDRNet23、DDRNet39
+Reference: https://github.com/ydhongHIT/DDRNet
+"""
 
-# BatchNorm2d = nn.SyncBatchNorm
-BatchNorm2d = nn.BatchNorm2d
-bn_mom = 0.1
+'''
+DDRNet23_slim
+'''
 
-
-def conv3x3(in_planes, out_planes, stride=1):
-    """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
+# import math
+# import torch
+# import numpy as np
+# import torch.nn as nn
+# import torch.nn.functional as F
+# from torch.nn import init
+# from collections import OrderedDict
+#
+# # BatchNorm2d = nn.SyncBatchNorm
+# BatchNorm2d = nn.BatchNorm2d
+# bn_mom = 0.1
+#
+#
+# def conv3x3(in_planes, out_planes, stride=1):
+#     """3x3 convolution with padding"""
+#     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+#                      padding=1, bias=False)
 
 
 # class BasicBlock(nn.Module):
@@ -382,8 +391,9 @@ def conv3x3(in_planes, out_planes, stride=1):
 
 
 
-
-
+'''
+DDRNet23
+'''
 
 # import math
 # import torch
@@ -756,7 +766,7 @@ def conv3x3(in_planes, out_planes, stride=1):
 # def DDRNet(pretrained=False, num_classes=19):
 #     model = DualResNet(BasicBlock, [3, 4, 6, 3], num_classes=num_classes, planes=64, spp_planes=128, head_planes=256, augment=False)
 #     if pretrained:
-#         checkpoint = torch.load('/data/dingcheng/segment/best_val_smaller.pth', map_location='cpu')
+#         checkpoint = torch.load('/data/dingcheng/segment/DDRNet23_imagenet.pth', map_location='cpu')
 #         '''       
 #         new_state_dict = OrderedDict()
 #         for k, v in checkpoint['state_dict'].items():
@@ -777,7 +787,9 @@ def conv3x3(in_planes, out_planes, stride=1):
 
 
 
-
+'''
+DDRNet39
+'''
 
 import math
 import torch
@@ -787,8 +799,8 @@ import torch.nn.functional as F
 from torch.nn import init
 from collections import OrderedDict
 
-# BatchNorm2d = nn.SyncBatchNorm
-BatchNorm2d = nn.BatchNorm2d
+BatchNorm2d = nn.SyncBatchNorm
+# BatchNorm2d = nn.BatchNorm2d
 bn_mom = 0.1
 
 
