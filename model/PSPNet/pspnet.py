@@ -1,3 +1,6 @@
+"""
+Reference from source code by author: https://github.com/hszhao/semseg
+"""
 import torch
 from torch import nn
 import torch.nn.functional as F

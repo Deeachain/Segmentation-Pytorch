@@ -1,3 +1,6 @@
+"""
+Reference from source code by author: https://github.com/hszhao/semseg
+"""
 import torch
 import torch.nn as nn
 import math
