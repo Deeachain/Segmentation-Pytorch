@@ -1,11 +1,11 @@
-## 项目更新日志
-- 2020.12.10 项目结构调整, 已经删除之前代码, 调整结束会重新上传代码
-- 2021.04.09 重新上传代码, "V1 commit"
-- 2021.04.22 更新torch distributed training
-- 持续更新
+## Project update log
+- 2020.12.10 Project structure adjustment, the previous code has been deleted, the adjustment will be re-uploaded code
+- 2021.04.09 Re-upload the code, "V1 Commit"
+- 2021.04.22 update torch distributed training
+- Ongoing update .....
 
-# 1. 效果展示（cityscapes）
-- 使用模型 DDRNet 1525张测试集, 官方Miou=78.4069%
+# 1. Effect Display (Cityscapes)
+- Using model DDRNet 1525 test sets, official MIOU =78.4069%
 
 <table>
     <tr>
@@ -16,24 +16,24 @@
     </tr>
 </table>
 
-- 原图和预测图对比
+- Comparison of the original and predicted images
 <table>
     <tr>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit.png"><div align = "center">origin</div></td>
-        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png"><div align = "center">gt</div></center></td>
+        <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_gt.png"><div align = "center">label</div></center></td>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/lindau_000000_000019_leftImg8bit_color.png"><div align = "center">predict</div></center></td>
     </tr>
 </table>
 
-# 2. 环境安装
+# 2. Environmental installation
 ```pip install -r requirements.txt```<br>
-实验环境： 
+Experimental environment:
 - Ubuntu 16.04 Nvidia-Cards >= 1
 - python==3.6.5<br>
-- 具体依赖安装包见requirement.txt<br>
+- See Dependency Installation Package for details in requirement.txt<br>
 
-# 3. 模型搭建
-所有的模型搭建都是在builders/model_builder.py文件下导入<br>
+# 3. Model
+All the modeling is done in `builders/model_builder.py`<br>
 - [x] FCN
 - [x] FCN_ResNet
 - [x] SegNet
@@ -51,25 +51,27 @@
 | DDRNet | - | 81% | 78% |  |
 Updating more model.......
 
-# 4. 数据预处理
-本项目可以实现公开数据集Cityscapes、ISPRS<br>
-后期会上传数据集-----<br>
-此处展示Cityscapes数据集准备:
+# 4. Data preprocessing
+This project enables you to expose data sets: Cityscapes、ISPRS<br>
+The data set is uploaded later .....<br>
+**Cityscapes data set preparation is shown here:**
 
-## 4.1 首先下载数据集
-根据官网链接下载数据集, `leftImg8bit`文件夹下原图后缀`*leftImg8bit.png`, `gtFine`文件夹下精细标注图片后缀: 
-`a) *color.png`、`b) *labelIds.png`、`c) *instanceIds.png`
+## 4.1 First, download the dataset
+Download the dataset from the link on the website, You can get `*leftImg8bit.png` suffix of original image under folder `leftImg8bit`, 
+`a) *color.png`、`b) *labelIds.png`、`c) *instanceIds.png` suffix of fine labeled image under folder `gtFine`.
 ```
 *leftImg8bit.png          : the origin picture
 a) *color.png             : the class is encoded by its color
 b) *labelIds.png          : the class is encoded by its ID
 c) *instanceIds.png       : the class and the instance are encoded by an instance ID
 ```
-## 4.2 标签图片onehot编码
-语义分割任务真实用到的标签灰度图onehot编码是0-18, 因此需要对标签进行编码. 使用编码脚本`dataset/cityscapes/cityscapes_scripts/process_cityscapes.py`
-对图片进行处理, 得到`*labelTrainIds.png`. `process_cityscapes.py`使用方法: 修改486行`cityscapes_path`为自己的数据存放路径.
+## 4.2 Onehot encoding of label image
+The real label gray scale image Onehot encoding used by the semantic segmentation task is 0-18, so the label needs to be encoded. 
+Using scripts `dataset/cityscapes/cityscapes_scripts/process_cityscapes.py`
+to process the image and get the result `*labelTrainIds.png`. 
+`process_cityscapes.py` Usage:Modify 486 lines `Cityscapes_path'is the path to store your own data.
 
-- 原图、彩色标签图和灰度标签图(0-18)对比
+- Comparison of original image, color label image and gray label image (0-18)
 <table>
     <tr>
         <td ><center><img src="https://github.com/Deeachain/Segmentation-Pytorch/blob/master/example/aachen_000000_000019_leftImg8bit.png"><div align = "center">***_leftImg8bit</div></td>
@@ -78,7 +80,7 @@ c) *instanceIds.png       : the class and the instance are encoded by an instanc
     </tr>
 </table>
 
-- 本地存储路径展示`/data/open_data/cityscapes/`:
+- Local storage path display `/data/open_data/cityscapes/`:
 ```
 data
   |--open_data
@@ -101,10 +103,11 @@ data
                         |--*******
 ```
 
-## 4.3 生成包含路径的txt
-- 生成图片路径txt<br>
-根据`dataset/generate_txt.py`脚本, 生成包含原图和标签的路径`txt`文件. 总共生成3个`txt`文件:
-`cityscapes_train_list.txt`、`cityscapes_val_list.txt`、`cityscapes_test_list.txt`,并且将三个文件复制到数据集根目录下<br>
+## 4.3 Generate a txt containing the image path
+- Generate image path<br>
+Use script `dataset/generate_txt.py` to generate the path `txt` file containing the original image and labels. 
+A total of 3 `txt` files will be generated: `cityscapes_train_list.txt`、`cityscapes_val_list.txt`、
+`cityscapes_test_list.txt`, and copy the three files to the dataset root directory.<br>
 ```
 data
   |--open_data
@@ -130,25 +133,25 @@ data
                         |--*******
 ```
 
-- `txt`文件内容展示如下:
+- The contents of the `txt` are shown as follows:
 ```
 leftImg8bit/train/cologne/cologne_000000_000019_leftImg8bit.png gtFine/train/cologne/cologne_000000_000019_gtFine_labelTrainIds.png
 leftImg8bit/train/cologne/cologne_000001_000019_leftImg8bit.png gtFine/train/cologne/cologne_000001_000019_gtFine_labelTrainIds.png
 ..............
 ```
 
-- `txt`文件格式如下:
+- The format of the `txt` are shown as follows:
 ```
-原图路径+分隔符'\t'+标签路径+'\n'
+origin image path + the separator '\t' + label path +  the separator '\n'
 ```
 
 
 # TODO.....
-# 5. 如何训练
+# 5. How to train
 ```
 sh train.sh
 ```
-## 5.1 参数详解
+## 5.1 Parameters
 ```
 python -m torch.distributed.launch --nproc_per_node=2 \
                 train.py --model PSPNet_res50 --out_stride 8 \
@@ -156,7 +159,7 @@ python -m torch.distributed.launch --nproc_per_node=2 \
                 --base_size 768 --crop_size 768  --tile_hw_size 768,768 \
                 --root '/data/open_data' --dataset cityscapes --gpus_id 1,2
 ```
-# 6. 如何验证
+# 6. How to validate
 ```
 sh predict.sh
 ```
