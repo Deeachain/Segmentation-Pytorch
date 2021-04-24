@@ -114,6 +114,7 @@ if __name__ == '__main__':
                                  'LovaszSoftmax', 'FocalLoss2d'], help="choice loss for train or val in list")
     parser.add_argument('--cuda', default=True, help="run on CPU or GPU")
     parser.add_argument("--gpus", default="0", type=str, help="gpu ids (default: 0)")
+    parser.add_argument('--local_rank', type=int, default=0)
     args = parser.parse_args()
 
     save_dirname = args.checkpoint.split('/')[-2] + '_' + args.checkpoint.split('/')[-1].split('.')[0]
