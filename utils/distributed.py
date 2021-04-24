@@ -18,7 +18,7 @@ def Distribute(args, traindataset, model, criterion, device, gpus):
 
     train_sampler = data.distributed.DistributedSampler(traindataset)
     DataLoader = data.DataLoader(traindataset, batch_size=args.batch_size//gpus, sampler=train_sampler,
-                shuffle=False, num_workers=args.batch_size, pin_memory=True, drop_last=False)
+                shuffle=False, num_workers=args.batch_size, pin_memory=True, drop_last=True)
 
     model.to(device)
     criterion = criterion.to(device)
