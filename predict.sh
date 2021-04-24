@@ -1,33 +1,14 @@
-# # !/usr/bin/env bash
-# python predict.py --model FCN_ResNet \
-#                   --backbone resnet50 \
-#                   --pretrained \
-#                   --out_stride 16 \
-#                   --mult_grid \
-#                   --checkpoint /data/dingcheng/segment/checkpoint/postdam/DDRNet-68.75/best_model.pth \
-#                   --root '/data/dingcheng/ISPRS' \
-#                   --dataset postdam \
-#                   --predict_type validation \
-#                   --predict_mode sliding \
-#                   --tile_hw_size '1024,1024' \
-#                   --batch_size 1 \
-#                   --gpus 2 \
-#                   --overlap 0.9 \
-#                   --scales 0.75 1.0 1.25 \
-#                   # --flip_merge \
-#                   # --mult_grid \
-
-# !/usr/bin/env bash
+#!/bin/bash
 python predict.py --model DDRNet \
-                  --checkpoint /data/dingcheng/segment/checkpoint/cityscapes/DDRNet/best_model.pth \
+                  --checkpoint /data/dingcheng/segment/checkpoint/cityscapes/DDRNet-75.24/best_model.pth \
+                  --out_stride 8 \
                   --root '/data/open_data' \
                   --dataset cityscapes \
                   --predict_type validation \
-                  --predict_mode sliding \
+                  --predict_mode whole \
+                  --crop_size 1024 \
                   --tile_hw_size '1024,1024' \
-                  --batch_size 1 \
-                  --gpus 2 \
+                  --batch_size 2 \
+                  --gpus 3 \
                   --overlap 0.3 \
-                  --scales 0.75 1.0 1.25 1.5 \
-                #   --flip_merge \
-                #   --mult_grid \
+                  --scales 0.5 0.75 1.0 1.25
