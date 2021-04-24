@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # Deeplabv3plus_res101  PSPNet_res101  DualSeg_res101  BiSeNet  BiSeNetV2  DDRNet
-# FCN_ResNet  SegTrans  
+# FCN_ResNet  SegTrans
 
 python -m torch.distributed.launch --nproc_per_node=2 \
                 train.py --model PSPNet_res50 --out_stride 8 \
