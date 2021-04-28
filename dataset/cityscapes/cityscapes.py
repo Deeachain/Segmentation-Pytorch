@@ -1,6 +1,6 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2021/3/12 上午10:28
+Time:     2021/3/12 10:28
 Author:   Ding Cheng(Deeachain)
 File:     cityscapes.py
 Github:   https://github.com/Deeachain
@@ -114,7 +114,7 @@ class CityscapesValDataSet(data.Dataset):
         name = datafiles["name"]
         composed_transforms = transforms.Compose([
             tr.FixScaleCrop(crop_size=self.crop_size),
-            # tr.FixedResize(size=(2048,1024)),
+            # tr.FixedResize(size=(1024,512)),
             tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
             tr.ToTensor()])
         sample = {'image': image, 'label': label}
