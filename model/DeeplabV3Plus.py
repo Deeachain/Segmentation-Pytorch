@@ -1,9 +1,9 @@
 # _*_ coding: utf-8 _*_
 """
-Time:     2020/11/28 下午12:32
+Time:     2020/11/28 12:32
 Author:   Cheng Ding(Deeachain)
 Version:  V 0.1
-File:     DeeplabV3+.py
+File:     DeeplabV3Plus.py
 Describe: Write during my study in Nanjing University of Information and Secience Technology
 Github:   https://github.com/Deeachain
 """
