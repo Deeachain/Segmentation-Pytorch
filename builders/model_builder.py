@@ -15,8 +15,8 @@ from model.FCN8s import FCN
 from model.BiSeNet import BiSeNet
 from model.BiSeNetV2 import BiSeNetV2
 from model.PSPNet.pspnet import PSPNet
+from model.DeeplabV3Plus import Deeplabv3plus_res50
 from model.FCN_ResNet import FCN_ResNet
-from model.DeeplabV3Plus import DeepLabv3_plus
 from model.DDRNet import DDRNet
 from model.HRNet import HighResolutionNet
 
@@ -44,8 +44,8 @@ def build_model(model_name, num_classes, backbone='resnet18', pretrained=False, 
         model = BiSeNetV2(num_classes=num_classes)
     elif model_name == 'HRNet':
         model = HighResolutionNet(num_classes=num_classes)
-    elif model_name == 'Deeplabv3plus_res101':
-        model = DeepLabv3_plus(nInputChannels=3, n_classes=num_classes, os=out_stride, pretrained=True)
+    elif model_name == 'Deeplabv3plus_res50':
+        model = Deeplabv3plus_res50(num_classes=num_classes, os=out_stride, pretrained=True)
     elif model_name == "DDRNet":
         model = DDRNet(pretrained=True, num_classes=num_classes)
     elif model_name == 'PSPNet_res50':
