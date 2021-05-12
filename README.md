@@ -48,6 +48,7 @@ All the modeling is done in `builders/model_builder.py`<br>
 | Model| Backbone| Val mIoU | Test mIoU | Imagenet Pretrain| Pretrained Model |
 | :--- | :---: |:---: |:---:|:---:|:---:|
 | PSPNet | ResNet 50 | 76.54% | - | √ | [PSPNet](https://drive.google.com/file/d/10T321s62xDZQJUR3k0H-l64smYW0QAxN/view?usp=sharing) |
+| DeeplabV3+ | ResNet 50 | 77.78% | - | √ | [DeeplabV3+]() |
 | DDRNet23_slim | - |  |  | [DDRNet23_slim_imagenet](https://drive.google.com/file/d/1mg5tMX7TJ9ZVcAiGSB4PEihPtrJyalB4/view) | |
 | DDRNet23 | - |  |  | [DDRNet23_imagenet](https://drive.google.com/file/d/1VoUsERBeuCaiuQJufu8PqpKKtGvCTdug/view) | |
 | DDRNet39 | - | 79.63% | - | [DDRNet39_imagenet](https://drive.google.com/file/d/122CMx6DZBaRRf-dOHYwuDY9vG0_UQ10i/view) | [DDRNet39](https://drive.google.com/file/d/1-poQsQzXqGl2d2ILXRhWgQH452MUTX5y/view?usp=sharing) |
