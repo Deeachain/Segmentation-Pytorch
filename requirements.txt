@@ -11,7 +11,7 @@ torch==1.2.0
 torchsummary==1.5.1
 opencv-python==4.1.0.25
 tqdm==4.52.0
-numpy==1.15.1
+numpy==1.22.0
 pandas==0.25.0
 scipy==1.5.1
 prettytable
